@@ -38,7 +38,8 @@ const createStory = async (video, cb) => {
         // #2. Merge the clips
         // get the home directory
         const home = "~".replace("~", os.homedir());
-        const output = path.join(home, "dumps/sod/data/uploads/video.mp4");
+        const output = path.join(home, "dumps/sod/data/uploads/video-output.mp4");
+        const result = path.join(home, "dumps/sod/data/uploads/video.mp4");
         const tmp = path.join(home, "dumps/sod/data/uploads/tmp");
 
         // ensure tmp directory
@@ -72,6 +73,9 @@ const createStory = async (video, cb) => {
 
         // merge all videos
         await mergeClips(outputs, output, tmp);
+
+        // downsize clip
+        await downsizeClip(output, result);
 
         // #3. upload the video to s3
         // get the video object key
@@ -214,6 +218,47 @@ const mergeClips = (files, output, tmp) => {
             })
             .on('error', (err) => {
                 reject(new Error(err));
+            })
+    })
+}
+
+const downsizeClip = (input, output) => {
+    return new Promise((resolve, reject) => {
+
+        ffmpeg.ffprobe(input, (err, metadata) => {
+
+            if (err) {
+                reject(err);
+                return;
+            }
+
+            const newWidth = 640;
+            const newHeight = 480;
+
+            const ar = getAspectRatio(
+                metadata.streams[0].width,
+                metadata.streams[0].height,
+                newWidth,
+                newHeight
+            )
+
+            const cmd = ffmpeg()
+                .input(input)
+                .withSize(`${newWidth}x${newHeight}`)
+                .withAspectRatio(ar)
+                .outputFormat('mp4')
+                .outputFps(29)
+                .output(output)
+
+            // run the conversion
+            cmd
+                .on('end', () => {
+                    fs.removeSync(input);
+                    resolve()
+                })
+                .on('error', (err) => {
+                    reject(new Error(err));
+                }).run()
             })
     })
 }
