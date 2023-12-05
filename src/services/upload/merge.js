@@ -3,13 +3,10 @@ const os = require('os')
 var ffmpeg = require('fluent-ffmpeg');
 const path = require("path");
 const fs = require('fs-extra');
-const Fraction = require("../../utils/fraction");
 var ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 var ffprobePath = require('@ffprobe-installer/ffprobe').path;
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
-
-const { FFmpeg } = require('kiss-ffmpeg')
 
 const createStory = async ({ user, body }) => {
 
@@ -31,9 +28,17 @@ const createStory = async ({ user, body }) => {
         // path.join(home, "dumps/sod/data/uploads/story.MOV"),
         // "https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/intro.mp4",
 
-        path.join(home, "dumps/sod/data/uploads/sod-story-intro.mp4"),
+        // path.join(home, "dumps/sod/data/uploads/sod-story-intro.mp4"),
+        // path.join(home, "dumps/sod/data/uploads/my-story.mp4"),
+        // path.join(home, "dumps/sod/data/uploads/sod-story-outro.mp4"),
+
+        fs.existsSync(path.join(home, "dumps/sod/data/uploads/sod-story-intro.mp4")) ? path.join(home, "dumps/sod/data/uploads/sod-story-intro.mp4") :
+            "https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/intro.mp4",
+
         path.join(home, "dumps/sod/data/uploads/my-story.mp4"),
-        path.join(home, "dumps/sod/data/uploads/sod-story-outro.mp4"),
+
+        fs.existsSync(path.join(home, "dumps/sod/data/uploads/sod-story-outro.mp4")) ? path.join(home, "dumps/sod/data/uploads/sod-story-outro.mp4") :
+        "https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/outro.mp4"
     ];
 
     const outputs = [];
@@ -170,34 +175,7 @@ const mergeClips = (files, output, tmp) => {
             })
 
         for (let i = 0; i < files.length; i++) {
-            const input = files[i];
-            cmd.input(files[i])  
-            
-            // ffmpeg.ffprobe(input, (err, metadata) => {
-            //     if (err) {
-            //         reject(err);
-            //         return;
-            //     }
-
-            //     const newWidth = 640;
-            //     const newHeight = 480;
-
-            //     const ar = getAspectRatio(
-            //         metadata.streams[0].width,
-            //         metadata.streams[0].height,
-            //         newWidth,
-            //         newHeight
-            //     )
-
-            //     cmd
-            //         // .addInputOptions([
-            //         //     `[${i}v]`,
-            //         //     '-vf scale=640:480',
-            //         //     '-aspect ' + ar
-            //         // ])
-            //         .addInput(input)
-            // })
-               
+            cmd.input(files[i])             
         }
 
         cmd
@@ -206,14 +184,14 @@ const mergeClips = (files, output, tmp) => {
             .on('end', () => {
                 // remove files
                 for (var i = 0; i < files.length; i++) {
-                    // fs.removeSync(files[i]);
+                    fs.removeSync(files[i]);
                 }
                 resolve()
             })
             .on('error', (err) => {
                 // remove files
                 for (var i = 0; i < files.length; i++) {
-                    // fs.removeSync(files[i]);
+                    fs.removeSync(files[i]);
                 }
                 reject(new Error(err));
             });

@@ -47,8 +47,12 @@ const createStory = async (video, cb) => {
 
         // get the clips
         const clips = [
+            fs.existsSync(path.join(home, "dumps/sod/data/uploads/sod-story-intro.mp4")) ? path.join(home, "dumps/sod/data/uploads/sod-story-intro.mp4") :
             "https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/intro.mp4",
+
             video.upload_url,
+
+            fs.existsSync(path.join(home, "dumps/sod/data/uploads/sod-story-outro.mp4")) ? path.join(home, "dumps/sod/data/uploads/sod-story-outro.mp4") :
             "https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/outro.mp4"
         ]
 
@@ -156,14 +160,14 @@ const convertClip = (input, output, folder) => {
 
             const cmd = ffmpeg()
                 .input(input)
-                .size(`${newWidth}x${newHeight}`)
-                .aspect(ar)
+                .withSize(`${newWidth}x${newHeight}`)
+                .withAspectRatio(ar)
                 .autopad('black')
                 .videoCodec('libx264')
                 .audioCodec('libmp3lame')
                 .audioQuality(0)
                 .outputFormat('mp4')
-                // .outputFps(29)
+                .outputFps(29)
                 .output(output)
                 .videoCodec('libx264')
 
