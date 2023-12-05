@@ -19,14 +19,14 @@ const processPendingVideos = async () => {
             // if video is new but more than 7 days, disapprove
             if (["new", "trash"].includes(video.status) && dayjs().diff(video.created_at, 'days') >= 7) {
                 video.status = "trash";
-                queue.push({
+                queue.pushTask({
                     id: video.id,
                     channel: "video",
                     method: "veto",
                     payload: video
                 })
             } else {
-                queue.push({
+                queue.pushTask({
                     id: video.id,
                     channel: "video",
                     method: "merge",

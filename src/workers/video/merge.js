@@ -92,7 +92,7 @@ const createStory = async (video, cb) => {
         await awsClient.send(new PutObjectCommand({
             Bucket: config.awsBucketName,
             Key: `sod-story/posts/${objKey}.mp4`,
-            Body: fs.createReadStream(output),
+            Body: fs.createReadStream(result),
             ContentType: 'video/mp4',
             ACL: "public-read"
         }));

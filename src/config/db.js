@@ -22,7 +22,7 @@ const getDB = async () => {
 
 /**
  * 
- * @param {Database} db 
+ * @param { import('better-sqlite3').Database } db 
  */
 function initialize(db) {
     // enebale WAL
@@ -44,6 +44,11 @@ function initialize(db) {
             `).run()
         }
 
+        // clear tasks
+        db.prepare(`
+            DELETE from tasks;
+        `).run()
+
     })(sqlStmts, [])
 }
 
@@ -53,4 +58,5 @@ module.exports = {
 
 const sqlStmts = [
     {name: "uploads", index: "upload"},
+    {name: "tasks", index: "task"},
 ]
