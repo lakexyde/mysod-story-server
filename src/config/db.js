@@ -28,6 +28,12 @@ function initialize(db) {
     // enebale WAL
     db.pragma('journal_mode = WAL');
 
+    db.function('regexp', (x, y) => {
+        x ||= "";
+        let match = y.match(new RegExp('^/(.*?)/([gimy]*)$'));
+        return x.match(new RegExp(match[1], match[2])) ? 1 : 'null'
+    });
+
     db.transaction((stmts, accounts) => {
         // run the statements
         for (let index = 0; index < stmts.length; index++) {

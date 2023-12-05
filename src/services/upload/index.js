@@ -76,9 +76,14 @@ const findUploads = async ({ user, query }) => {
     params.skip = (params.limit * params.page) - params.limit;
 
     let match = {
+        role: user?.role,
         limit: params.limit,
         skip: params.skip
     };
+
+    if (user?.role !== "admin") {
+        params.status = "publish";
+    } 
 
     if (params.status) {
         match.status = params.status.toLowerCase();
@@ -112,12 +117,12 @@ const findUploads = async ({ user, query }) => {
 const updateUpload = async ({ user, body, params }) => {
 
     // Make sure user is admin
-    if (!user || user?.role != "admin") {
+    if (!user || user?.role !== "admin") {
         throw `[401]Unathorized request`;
     }
 
     let schema = Joi.object({
-        "status": Joi.string().valid("publish", "trash"),
+        "status": Joi.string().valid("publish", "trash").required(),
     }).options({stripUnknown: true});
 
     // validate the schema

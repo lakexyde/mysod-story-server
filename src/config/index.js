@@ -3,6 +3,8 @@ const config = {
     nodeEnv: process.env.NODE_ENV || "dev",
     appDataPath: process.env.APP_DATA_PATH || "~/sod",
     jwtKey: process.env.JWT_KEY,
+    adminPassword: process.env.ADMIN_PASSWORD,
+    adminEmail: "info@gloryrealmsministries.org",
 
     cookieDomains: (process.env.COOKIE_DOMAINS || "localhost").split(",").map(e => e.trim()),
     corsOrigins: (process.env.CORS_ORIGINS || "http://localhost").split(",").map(e => e.trim()),

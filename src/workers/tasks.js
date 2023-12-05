@@ -11,6 +11,7 @@ const processPendingVideos = async () => {
         // get the videos
         const { results } = await UploadModel.findAll({
             status: "new,trash",
+            role: "admin",
             limit: 50
         });
 

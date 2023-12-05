@@ -50,11 +50,23 @@ const update = async (params = {}, data) => {
     return data;
 }
 
-const findAll = async (params = {}, count = false) => {
+const findAll = async (params = {role: "admin"}, count = false) => {
 
     let joins = "";
     let where = "";
     let sorting = "(data ->> '$.created_at') DESC";
+
+    let fields = {
+        "id": "json_extract(data, '$.id')",
+        "url": "json_extract(data, '$.url')",
+        "thumbnail_url": "json_extract(data, '$.thumbnail_url')",
+        "upload_url": "json_extract(data, '$.upload_url')",
+        "sender": "json_extract(data, '$.sender')",
+        "user": "json_extract(data, '$.user')",
+        "status": "json_extract(data, '$.status')",
+        "created_at": "json_extract(data, '$.created_at')",
+        "updated_at": "json_extract(data, '$.updated_at')",
+    }
 
     if (params.id) {
         where += (where ? 'AND' : '') + `(data ->> '$.id' = ${quote(params.id)})\n`;
@@ -63,6 +75,14 @@ const findAll = async (params = {}, count = false) => {
     if (params.status) {
         let s = params.status.split(",").map(e => quote(e.trim())).join(",");
         where += (where ? 'AND' : '') + `((data ->> '$.status' IN (${s})))\n`
+    }
+
+    if (params.search) {
+        where += (where ? 'AND' : '') + `(
+            regexp(data ->> '$.id', '/${params.search}/gi') 
+            OR regexp(data ->> '$.sender.name', '/${params.search}/gi')
+            OR regexp(data ->> '$.url', '/${params.search}/gi')
+        )\n`;
     }
 
     if (params.date_min && params.date_max) {
@@ -74,12 +94,20 @@ const findAll = async (params = {}, count = false) => {
     } else { }
 
     let stmt = `
-        SELECT data FROM uploads
+        SELECT @fields@  FROM uploads
         ${joins}
         ${(where ? 'WHERE ' : '') + where} 
         ${sorting ? 'ORDER BY ' + sorting : ''}
         ${params.limit ? 'LIMIT ' + params.limit : ''} ${params.skip ? 'OFFSET ' + params.skip : ''}
     `.trim();
+
+    // remove keys if not admin
+    if (params.role != "admin") {
+        delete fields["upload_url"];
+        delete fields["user"];
+    }
+
+    stmt = stmt.replace('@fields@', Object.entries(fields).map(e => `${e[1]} AS ${e[0]}`).join(', '));
 
     const db = await getDB();
     const results = db.prepare(stmt).all().map(e => getJSON(e.data || e));

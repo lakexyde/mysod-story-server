@@ -5,7 +5,7 @@ const dayjs = require('dayjs');
 const registerToken = async ({ user: {}, body, jwt }) => {
 
     let schema = Joi.object({
-        "platform": Joi.string().valid("web", "android", "ios").required(),
+        "platform": Joi.string().valid("web", "android", "ios").optional(),
         "token": Joi.alternatives(
             Joi.string(),
             Joi.object()
