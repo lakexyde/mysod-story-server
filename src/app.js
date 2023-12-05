@@ -38,7 +38,8 @@ class SODApp {
 
         // register cors
         this.app.use(require('cors')({
-            origin: "*",
+            origin: config.corsOrigins,
+            methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
             optionsSuccessStatus: 200,
             credentials: true
         }))
