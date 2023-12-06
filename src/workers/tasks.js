@@ -12,14 +12,15 @@ const processPendingVideos = async () => {
         const { results } = await UploadModel.findAll({
             status: "new,trash",
             role: "admin",
-            limit: 50
+            sorting: "(data ->> '$.last_attempted_at') ASC",
+            limit: 100
         });
 
         for (let video of results ) {
 
             // delete presigned-url if not uploaded within 1 day
             if (
-                (video.status == "new" && dayjs().diff(video.created_at, 'days') >= 1) || 
+                (video.status == "new" && dayjs().diff(video.created_at, 'days') >= 2) || 
                 (video.status == "trash" && dayjs().diff(video.created_at, 'days') >= 7)
             ) {
                 video.status = "trash";

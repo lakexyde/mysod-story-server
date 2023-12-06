@@ -31,6 +31,12 @@ const createStory = async (video, cb) => {
 
         // #1. check if video exists
         if (!(await objectExists(new URL(video.upload_url).pathname.substring(1)))) {
+
+            // move the video down the pecking order
+            await UploadModel.update({id: video.id}, {
+                last_attempted_at: dayjs().toISOString()
+            });
+
             throw "Upload url does not exist yet";
         }
         // await awsClient.send(new HeadObjectCommand({

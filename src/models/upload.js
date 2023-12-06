@@ -54,7 +54,7 @@ const findAll = async (params = {role: "admin"}, count = false) => {
 
     let joins = "";
     let where = "";
-    let sorting = "(data ->> '$.created_at') DESC";
+    let sorting = params.sorting || "(data ->> '$.created_at') DESC";
 
     let fields = {
         "id": "json_extract(data, '$.id')",
