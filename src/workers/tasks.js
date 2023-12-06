@@ -17,8 +17,11 @@ const processPendingVideos = async () => {
 
         for (let video of results ) {
 
-            // if video is new but more than 7 days, disapprove
-            if (["new", "trash"].includes(video.status) && dayjs().diff(video.created_at, 'days') >= 7) {
+            // delete presigned-url if not uploaded within 1 day
+            if (
+                (video.status == "new" && dayjs().diff(video.created_at, 'days') >= 1) || 
+                (video.status == "trash" && dayjs().diff(video.created_at, 'days') >= 7)
+            ) {
                 video.status = "trash";
                 queue.pushTask({
                     id: video.id,

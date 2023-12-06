@@ -36,10 +36,16 @@ const router = (app, _, done) => {
     app.addHook('onRequest', (req, _, done) => {
         try {
             let token = req.cookies["sod.token"]; // try to get token from cookie
-            if (!token) throw "No token";
-            const user = app.jwt.decode(token);
-            if (user && (dayjs().valueOf() / 1000) < user.exp) {
-                req.user = user;
+            // if not set, try the bearer token
+            if (!token) {
+                token = req.headers.authorization.substring(6).trim();
+            }
+            // if token found, decode the token and get user
+            if (token) {
+                const user = app.jwt.decode(token);
+                if (user && (dayjs().valueOf() / 1000) < user.exp) {
+                    req.user = user;
+                }
             }
         } catch (error) {}
         done();
