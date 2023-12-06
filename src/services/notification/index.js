@@ -2,7 +2,7 @@ const Joi = require('joi');
 const config = require('../../config');
 const dayjs = require('dayjs');
 
-const registerToken = async ({ user: {}, body, jwt }) => {
+const registerToken = async ({ user, body, jwt }) => {
 
     let schema = Joi.object({
         "platform": Joi.string().valid("web", "android", "ios").optional(),
@@ -21,6 +21,8 @@ const registerToken = async ({ user: {}, body, jwt }) => {
 
     // get the validated data
     var data = validate.value;
+
+    user ||= {}
 
     let token = jwt.sign({
         ...user,

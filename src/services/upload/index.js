@@ -1,5 +1,5 @@
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
-const { PutObjectCommand, HeadObjectCommand } = require("@aws-sdk/client-s3");
+const { PutObjectCommand } = require("@aws-sdk/client-s3");
 
 const { awsClient } = require("../../config/s3");
 const { genId } = require("../../utils/gen");

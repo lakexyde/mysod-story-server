@@ -103,7 +103,7 @@ class SODApp {
         )
 
         // add the job
-        this.app.scheduler.addSimpleIntervalJob(new SimpleIntervalJob({ seconds: 120 }, pendingUploadTasks))
+        this.app.scheduler.addSimpleIntervalJob(new SimpleIntervalJob({ seconds: 60 }, pendingUploadTasks))
     }
 }
 

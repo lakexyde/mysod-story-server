@@ -60,7 +60,7 @@ const getQueue = async () => {
         id: 'id',
         concurrent: 1,
         maxRetries: 1,
-        retryDelay: 30000,
+        retryDelay: 200,
         // maxTimeout: 600000,
         // cancelIfRunning: true,
         store: {
