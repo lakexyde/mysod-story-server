@@ -123,6 +123,7 @@ const updateUpload = async ({ user, body, params }) => {
 
     let schema = Joi.object({
         "status": Joi.string().valid("publish", "trash").required(),
+        "url": Joi.string().uri().optional()
     }).options({stripUnknown: true});
 
     // validate the schema
@@ -147,8 +148,6 @@ const updateUpload = async ({ user, body, params }) => {
     let post = posts[0];
 
     if (post.status != data.status) {
-        await UploadModel.update({id: params.id}, data);
-
         // TODO Push notifications if status is publish
         if (data.status == "publish" && post.url) {
             const queue = await getQueue();
@@ -160,6 +159,8 @@ const updateUpload = async ({ user, body, params }) => {
             })
         }
     }
+
+    await UploadModel.update({id: params.id}, data);
 
     return {
         ok: true,

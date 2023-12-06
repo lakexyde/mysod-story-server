@@ -83,7 +83,7 @@ const createStory = async (video, cb) => {
 
         // #3. upload the video to s3
         // get the video object key
-        let objKey = getFileName(video.upload_url).split(".")[0]
+        let objKey = getFileName(video.upload_url).split(".")[0].replace(".mp4", "")
 
         let video_url = new URL(video.upload_url);
         video_url.pathname = `sod-story/posts${video_url.pathname}.mp4`

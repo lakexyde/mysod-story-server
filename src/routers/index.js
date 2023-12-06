@@ -1,6 +1,22 @@
 const dayjs = require("dayjs");
 const { getQueue } = require("../config/queue");
 
+function getFileName(urlOrPath) {
+    if (typeof urlOrPath !== 'string') {
+      throw new Error('Invalid input: Expected a string');
+    }
+  
+    const url = new URL(urlOrPath);
+    const path = url.pathname;
+    const lastSlashIndex = path.lastIndexOf('/');
+  
+    if (lastSlashIndex === -1) {
+      return path;
+    } else {
+      return path.substring(lastSlashIndex + 1);
+    }
+  }
+
 /**
  * 
  * @param { import("fastify").FastifyInstance } app 
@@ -11,7 +27,7 @@ const router = (app, _, done) => {
 
     // base route
     app.get('/', async (_, reply) => {
-        reply.send({ ok: true });
+        reply.send({ ok: true, data: getFileName("https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/posts/sod-story/dumps/6575185868834356.mp4") });
     });
 
     // check app health
