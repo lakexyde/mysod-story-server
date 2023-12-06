@@ -30,10 +30,13 @@ const createStory = async (video, cb) => {
         }
 
         // #1. check if video exists
-        await awsClient.send(new HeadObjectCommand({
-            Bucket: config.awsBucketName,
-            Key: new URL(video.upload_url).pathname.substring(1)
-        }))
+        if (!(await objectExists(new URL(video.upload_url).pathname.substring(1)))) {
+            throw "Upload url does not exist yet";
+        }
+        // await awsClient.send(new HeadObjectCommand({
+        //     Bucket: config.awsBucketName,
+        //     Key: new URL(video.upload_url).pathname.substring(1)
+        // }))
 
         // #2. Merge the clips
         // get the home directory
@@ -352,3 +355,24 @@ function getAspectRatio(originalWidth, originalHeight, newWidth, newHeight) {
       return `${newAspectRatioNumerator}:${originalAspectRatioDenominator}`;
     }
   }
+
+  function objectExists(key) {
+    return new Promise((resolve, reject) => {
+        awsClient.send(new HeadObjectCommand({
+            Bucket: config.awsBucketName,
+            Key: key
+        }))
+        .then(res => {
+            if (res.$metadata.httpStatusCode !== 200) {
+                reject(false);
+                return;
+            } 
+
+            switch (res.$metadata.httpStatusCode) {
+                case 200: return resolve(true);
+                default: return reject(false);
+            }
+        })
+        .catch(err => reject(false));
+    })
+}
