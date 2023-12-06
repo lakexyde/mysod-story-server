@@ -122,7 +122,7 @@ const updateUpload = async ({ user, body, params }) => {
     }
 
     let schema = Joi.object({
-        "status": Joi.string().valid("publish", "trash").required(),
+        "status": Joi.string().valid("publish", "trash", "pending").required(),
         "url": Joi.string().uri().optional()
     }).options({stripUnknown: true});
 
