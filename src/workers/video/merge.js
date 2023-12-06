@@ -72,14 +72,27 @@ const createStory = async (video, cb) => {
         for (let index = 0; index < clips.length; index++) {
             const input = clips[index];
 
-            let out = path.join(home, `dumps/sod/data/uploads/video-${index}.mp4`);
-            let tmp = await writeToFile(input, path.join(home, `dumps/sod/data/uploads/tmp/video-${index}.mp4`));
+            let out = input;
 
-            await convertClip(tmp, out, index == 1 ? path.join(home, "dumps/sod/data/uploads") : null);
-            outputs.push(out);
+            if (index == 1) {
+                out = path.join(home, `dumps/sod/data/uploads/video-${index}.mp4`);
+                let tmp = await writeToFile(input, path.join(home, `dumps/sod/data/uploads/tmp/video-${index}.mp4`));
+
+                await convertClip(tmp, out, index == 1 ? path.join(home, "dumps/sod/data/uploads") : null);
+
+                // remove the input file
+                fs.removeSync(tmp);
+            } else {
+
+            }
+
+            
+
+            // await convertClip(tmp, out, index == 1 ? path.join(home, "dumps/sod/data/uploads") : null);
+            // outputs.push(out);
 
             // remove the input file
-            fs.removeSync(tmp);
+            // fs.removeSync(tmp);
 
             console.log("DONE WITH INPUT: ", index + 1);
         }
@@ -217,7 +230,10 @@ const mergeClips = (files, output, tmp) => {
             })
 
         for (let i = 0; i < files.length; i++) {
-            cmd.input(files[i])   
+            
+            cmd
+                .input(files[i])
+                .format('mp4')   
         }
 
         cmd
@@ -225,7 +241,7 @@ const mergeClips = (files, output, tmp) => {
             .on('end', () => {
                 // remove files
                 for (var i = 0; i < files.length; i++) {
-                    fs.removeSync(files[i]);
+                    // fs.removeSync(files[i]);
                 }
                 resolve()
             })
@@ -266,7 +282,7 @@ const downsizeClip = (input, output) => {
             // run the conversion
             cmd
                 .on('end', () => {
-                    fs.removeSync(input);
+                    // fs.removeSync(input);
                     resolve()
                 })
                 .on('error', (err) => {

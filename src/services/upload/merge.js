@@ -35,7 +35,7 @@ const createStory = async ({ user, body }) => {
         fs.existsSync(path.join(home, "dumps/sod/data/uploads/sod-story-intro.mp4")) ? path.join(home, "dumps/sod/data/uploads/sod-story-intro.mp4") :
             "https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/intro.mp4",
 
-        path.join(home, "dumps/sod/data/uploads/my-story.mp4"),
+        path.join(home, "dumps/sod/data/uploads/outro.mp4"),
 
         fs.existsSync(path.join(home, "dumps/sod/data/uploads/sod-story-outro.mp4")) ? path.join(home, "dumps/sod/data/uploads/sod-story-outro.mp4") :
         "https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/outro.mp4"
@@ -46,16 +46,27 @@ const createStory = async ({ user, body }) => {
     for (let index = 0; index < clips.length; index++) {
         const input = clips[index];
 
-        let out = path.join(home, `dumps/sod/data/uploads/video-${index}.mp4`);
-        let tmp = await writeToFile(input, path.join(home, `dumps/sod/data/uploads/tmp/video-${index}.mp4`));
+            let out = input;
 
-        await convertClip(tmp, out, index == 1 ? path.join(home, "dumps/sod/data/uploads") : null);
-        outputs.push(out);
+            if (index == 1) {
+                out = path.join(home, `dumps/sod/data/uploads/video-${index}.mp4`);
+                let tmp = await writeToFile(input, path.join(home, `dumps/sod/data/uploads/tmp/video-${index}.mp4`));
 
-        // remove the input file
-        fs.removeSync(tmp);
+                await convertClip(tmp, out, index == 1 ? path.join(home, "dumps/sod/data/uploads") : null);
 
-        console.log("DONE WITH INPUT: ", index + 1);
+                // remove the input file
+                fs.removeSync(tmp);
+            } else {
+
+            }
+
+            // await convertClip(tmp, out, index == 1 ? path.join(home, "dumps/sod/data/uploads") : null);
+            outputs.push(out);
+
+            // remove the input file
+            // fs.removeSync(tmp);
+
+            console.log("DONE WITH INPUT: ", index + 1);
     }
 
     // merge all videos
@@ -175,7 +186,10 @@ const mergeClips = (files, output, tmp) => {
             })
 
         for (let i = 0; i < files.length; i++) {
-            cmd.input(files[i])             
+            console.log(files[i])
+            cmd
+                .input(files[i])   
+                .format('mp4')          
         }
 
         cmd
@@ -184,14 +198,14 @@ const mergeClips = (files, output, tmp) => {
             .on('end', () => {
                 // remove files
                 for (var i = 0; i < files.length; i++) {
-                    fs.removeSync(files[i]);
+                    // fs.removeSync(files[i]);
                 }
                 resolve()
             })
             .on('error', (err) => {
                 // remove files
                 for (var i = 0; i < files.length; i++) {
-                    fs.removeSync(files[i]);
+                    // fs.removeSync(files[i]);
                 }
                 reject(new Error(err));
             });
@@ -229,7 +243,7 @@ const downsizeClip = (input, output) => {
             // run the conversion
             cmd
                 .on('end', () => {
-                    fs.removeSync(input);
+                    // fs.removeSync(input);
                     resolve()
                 })
                 .on('error', (err) => {

@@ -21,7 +21,7 @@ const processPendingVideos = async () => {
             // delete presigned-url if not uploaded within 1 day
             if (
                 (video.status == "new" && dayjs().diff(video.created_at, 'days') >= 2) || 
-                (video.status == "trash" && dayjs().diff(video.created_at, 'minutes') >= 30)
+                (video.status == "trash" && dayjs().diff(video.created_at, 'minutes') >= 10)
             ) {
                 video.status = "trash";
                 queue.pushTask({
