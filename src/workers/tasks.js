@@ -27,6 +27,7 @@ const processPendingVideos = async () => {
                     id: video.id,
                     channel: "video",
                     method: "veto",
+                    priority: 5,
                     payload: video
                 })
             } else {
@@ -34,6 +35,7 @@ const processPendingVideos = async () => {
                     id: video.id,
                     channel: "video",
                     method: "merge",
+                    priority: 8,
                     payload: video
                 })
             }  

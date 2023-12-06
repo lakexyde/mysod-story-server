@@ -155,6 +155,7 @@ const updateUpload = async ({ user, body, params }) => {
                 id: post.id,
                 channel: "video",
                 method: "publish",
+                priority: 10,
                 payload: post
             })
         }
