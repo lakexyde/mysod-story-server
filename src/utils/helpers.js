@@ -73,7 +73,7 @@ function capitalize(text) {
     return arr.join(" ");
 }
 
-function getFileName(urlOrPath) {
+function getFileName(inputUrl) {
     let fileName;
 
     try {

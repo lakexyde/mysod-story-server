@@ -20,7 +20,7 @@ const createStory = async ({ user, body }) => {
             method: "merge",
             payload: {
                 id: "2343234235",
-                upload_url: "/Users/lakexyde/dumps/sod/data/uploads/outro.mp4",
+                upload_url: "/Users/lakexyde/dumps/sod/data/uploads/mov_bbb.mp4",
                 abort: true,
             }
         })

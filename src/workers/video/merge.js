@@ -289,7 +289,7 @@ const downsizeClip = (input, output, folder) => {
                     fastSeek: true,
                     folder,
                     timemarks: ['00:00:08.000'],
-                    size: "640x480",
+                    size: "848x480",
                 })
 
             // run the conversion
