@@ -195,7 +195,7 @@ const notifyUpload = async ({ body }) => {
         throw `[400]Video was not found`;
     }
 
-    await UploadModel.update({id: params.id}, {
+    await UploadModel.update({id: posts[0].id}, {
         "uploaded": "yes"
     });
 
