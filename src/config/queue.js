@@ -29,6 +29,7 @@ class MyQueue extends Queue {
             // save to the database
             db.prepare(`
                 INSERT INTO tasks (id, data) VALUES (@id, json(@data))
+                ON CONFLICT(id) DO UPDATE SET data=json(@data)
             `).run({
                 id: task.id,
                 data: JSON.stringify(task)
