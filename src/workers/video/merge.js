@@ -180,6 +180,12 @@ const convertClip = (input, output, folder) => {
 
             let maxDuration = config.nodeEnv.startsWith("dev") ? 50 : 45;
 
+            // if portrait, trash
+            if (metadata.streams[0].height > metadata.streams[0].width) {
+                reject("trash")
+                return;
+            }
+
             // reject video if more than 45 seconds
             if (metadata.streams[0].duration > maxDuration) {
                 reject("trash")
