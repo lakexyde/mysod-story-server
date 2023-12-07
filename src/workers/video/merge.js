@@ -100,7 +100,7 @@ const createStory = async (video, cb) => {
         await mergeClips(outputs, output, tmp);
 
         // downsize clip
-        await downsizeClip(output, result);
+        await downsizeClip(output, result, path.join(home, "dumps/sod/data/uploads"));
 
         if (video.abort) {
             throw "Aborted";
@@ -170,66 +170,31 @@ module.exports = {
 
 const convertClip = (input, output, folder) => {
 
-    return new Promise((resolve, reject) => {
-        const baseResolution = '1920:1080';
-
-        console.log("coonverting clip");
+    // return new Promise((resolve, reject) => {
+    //     console.log("coonverting clip");
     
-        ffmpeg()
-          .input(input)
-          .complexFilter('[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2[v];[0:a]anull[a]')
-        .outputOptions('-map [v]')
-        .outputOptions('-map [a]')
-        .outputOptions('-c:v libx264')
-        .outputOptions('-c:a aac')
-        .save(output)
-          .on('start', (commandLine) => {
-            console.log('Spawned ffmpeg with command:', commandLine);
-          })
-          .on('end', () => {
-            resolve();
-          })
-          .on('error', (err) => {
-            reject(err);
-          })
-        //   .run()
+    //     ffmpeg()
+    //       .input(input)
+    //       .complexFilter('[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2[v];[0:a]anull[a]')
+    //     .outputOptions('-map [v]')
+    //     .outputOptions('-map [a]')
+    //     .outputOptions('-c:v libx264')
+    //     .outputOptions('-c:a aac')
+    //     .save(output)
+    //       .on('start', (commandLine) => {
+    //         console.log('Spawned ffmpeg with command:', commandLine);
+    //       })
+    //       .on('end', () => {
+    //         resolve();
+    //       })
+    //       .on('error', (err) => {
+    //         reject(err);
+    //       })
+    //     //   .run()
           
-      });
+    //   });
 
     return new Promise((resolve, reject) => {
-
-        // let f = input.split('.');
-
-        // const cmd = ffmpeg();
-        // cmd.input(input)
-        // .inputFormat(f[f.length - 1] || 'any') // Specify any input format
-        // // .inputOptions('-shortest') // Set the output duration to the duration of the input
-        // .complexFilter('[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2[video0]')
-        // .outputOptions('-c:v libx264') // Set the video codec for the output
-        // .outputOptions('-c:a aac')  
-        
-        // // take screenshot if needed
-        // if (folder) {
-        //     cmd.takeScreenshots({
-        //         count: 1,
-        //         filename: "thumbnail.webp",
-        //         fastSeek: true,
-        //         folder,
-        //         timemarks: ['00:00:02.000'],
-        //         size: "640x480",
-        //     });
-        // }
-        // // Set the audio codec for the output
-        // cmd.on('end', () => {
-        //     resolve()
-        // })
-        // .on('error', (err, c) => {
-        //     console.log("COMMAND: ", c);
-        //     reject(new Error(err));
-        // })
-        // .save(output)
-
-        // return;
 
         ffmpeg.ffprobe(input, (err, metadata) => {
 
@@ -238,74 +203,73 @@ const convertClip = (input, output, folder) => {
                 return;
             }
 
-            const newWidth = 1920;
-            const newHeight = 1080;
-
-            const { width, height } = metadata.streams[0];
-            const scaleFactor = 1920 / width;
-
-            const ar = getAspectRatio(
-                metadata.streams[0].width,
-                metadata.streams[0].height,
-                newWidth,
-                newHeight
-            )
-
             // reject video if more than 45 seconds
-            if (metadata.streams[0].duration > 48) {
+            if (metadata.streams[0].duration > 45) {
                 reject("trash")
                 return;
             }
 
-            const cmd = ffmpeg()
-
-            //     .input(input)
-            //     .format('mp4')
-
-            if (metadata.streams[0].width != 1920) {
-                // cmd
-                //     .complexFilter([
-                //         `scale=1920:-1,crop='min(1080,1*ih)':'min(iw/1,ih)'`
-                //     ])
-            }
-
-            let f = input.split('.');
-
-            cmd
+                ffmpeg()
                 .input(input)
-                .inputFormat(f[f.length -1])
-                .withSize(`${newWidth}x${newHeight}`)
-                .withAspectRatio(ar)
-                .autopad('black')
-                .videoCodec('libx264')
-                .audioCodec('libmp3lame')
-                .audioQuality(0)
-                .outputFormat('mp4')
-                .outputFps(29)
-                .output(output)
-                .videoCodec('libx264')
+                .complexFilter('[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2[v];[0:a]anull[a]')
+                .outputOptions('-map [v]')
+                .outputOptions('-map [a]')
+                .outputOptions('-c:v libx264')
+                .outputOptions('-c:a aac')
+                .save(output)
+                .on('start', (commandLine) => {
+                    console.log('Spawned ffmpeg with command:', commandLine);
+                })
+                .on('end', () => {
+                    resolve();
+                })
+                .on('error', (err) => {
+                    reject(err);
+                })
+        //   .run()
 
+            // const cmd = ffmpeg()
+            //     .input(input)
+            //     .complexFilter('[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2[v];[0:a]anull[a]')
+            //     .outputOptions('-map [v]')
+            //     .outputOptions('-map [a]')
+            //     .outputOptions('-c:v libx264')
+            //     .outputOptions('-c:a aac')
+            //     .screenshots({
+            //                 count: 1,
+            //                 filename: "thumbnail.webp",
+            //                 fastSeek: true,
+            //                 folder,
+            //                 timemarks: ['00:00:02.000'],
+            //                 size: "640x480",
+            //             })
+                
 
             // take screenshot if needed
-            if (folder) {
-                cmd.takeScreenshots({
-                    count: 1,
-                    filename: "thumbnail.webp",
-                    fastSeek: true,
-                    folder,
-                    timemarks: ['00:00:02.000'],
-                    size: "640x480",
-                });
-            }
+            // if (folder) {
+            //     cmd.screenshots({
+            //         count: 1,
+            //         filename: "thumbnail.webp",
+            //         fastSeek: true,
+            //         folder,
+            //         timemarks: ['00:00:02.000'],
+            //         size: "640x480",
+            //     });
+            // }
 
             // run the conversion
-            cmd
-                .on('end', () => {
-                    resolve()
-                })
-                .on('error', (err, c) => {
-                    reject(new Error(err));
-                }).run()
+            // cmd
+            // .save(output)
+            // .on('start', (commandLine) => {
+            //     console.log('Spawned ffmpeg with command:', commandLine);
+            //   })
+            //     .on('end', () => {
+            //         resolve()
+            //     })
+            //     .on('error', (err, c) => {
+            //         reject(new Error(err));
+            //     })
+            //     // .run()
             })
     })
 }
@@ -318,10 +282,6 @@ const mergeClips = (files, output, tmp) => {
         const baseResolution = '1920:1080';
 
         const complexFilter = [
-            // '[0:v]scale=848:480:force_original_aspect_ratio=decrease,pad=848:480:(ow-iw)/2:(oh-ih)/2[video0]',
-            // '[1:v]scale=848:480:force_original_aspect_ratio=decrease,pad=848:480:(ow-iw)/2:(oh-ih)/2[video1]',
-            // '[2:v]scale=848:480:force_original_aspect_ratio=decrease,pad=848:480:(ow-iw)/2:(oh-ih)/2[video2]',
-            // '[video0][video1][video2]concat=n=3:v=1:a=1[output]'
             `[0:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video0]`,
             `[1:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video1]`,
             `[2:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video2]`,
@@ -330,7 +290,6 @@ const mergeClips = (files, output, tmp) => {
 
         for (let i = 0; i < files.length; i++) {
             let f = files[i].split('.');
-            // cmd.mergeAdd(files[i]);
             cmd
                 .input(files[i])
                 .inputFormat(f[f.length - 1] || 'any')
@@ -362,7 +321,7 @@ const mergeClips = (files, output, tmp) => {
     })
 }
 
-const downsizeClip = (input, output) => {
+const downsizeClip = (input, output, folder) => {
     return new Promise((resolve, reject) => {
 
         ffmpeg.ffprobe(input, (err, metadata) => {
@@ -389,11 +348,19 @@ const downsizeClip = (input, output) => {
                 .outputFormat('mp4')
                 .outputFps(29)
                 .output(output)
+                .screenshots({
+                    count: 1,
+                    filename: "thumbnail.webp",
+                    fastSeek: true,
+                    folder,
+                    timemarks: ['00:00:08.000'],
+                    size: "640x480",
+                })
 
             // run the conversion
             cmd
                 .on('end', () => {
-                    // fs.removeSync(input);
+                    fs.removeSync(input);
                     resolve()
                 })
                 .on('error', (err) => {
