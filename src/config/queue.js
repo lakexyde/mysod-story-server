@@ -83,10 +83,12 @@ const getQueue = async () => {
     });
 
     // listen to task queue
-    _q.on('task_queued', (taskId, _) => {
-        console.log('Task with id: ', taskId, 'queued');
-    })
-
+    if (config.nodeEnv.startsWith("dev")) {
+        _q.on('task_queued', (taskId, _) => {
+            console.log('Task with id: ', taskId, 'queued');
+        })
+    }
+    
     _q.on('task_finish', (taskId) => {
         _q.removeTask(taskId)
     })
