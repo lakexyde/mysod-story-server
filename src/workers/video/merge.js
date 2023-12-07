@@ -14,6 +14,8 @@ var ffprobePath = require('@ffprobe-installer/ffprobe').path;
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
 
+let fps = 30;
+
 const createStory = async (video, cb) => {
 
     // get the start time
@@ -46,8 +48,7 @@ const createStory = async (video, cb) => {
         // #2. Merge the clips
         // get the home directory
         const home = "~".replace("~", os.homedir());
-        const output = path.join(home, "dumps/sod/data/uploads/video-output.mp4");
-        const result = path.join(home, "dumps/sod/data/uploads/video.mp4");
+        const output = path.join(home, "dumps/sod/data/uploads/video.webm");
         const tmp = path.join(home, "dumps/sod/data/uploads/tmp");
 
         // ensure tmp directory
@@ -61,7 +62,7 @@ const createStory = async (video, cb) => {
             video.upload_url,
 
             fs.existsSync(path.join(home, "dumps/sod/data/uploads/sod-story-outro.mp4")) ? path.join(home, "dumps/sod/data/uploads/sod-story-outro.mp4") :
-            "https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/outro.mp4"
+            "https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/outro.mp4",
         ]
 
         // collect the outputs
@@ -71,38 +72,35 @@ const createStory = async (video, cb) => {
         for (let index = 0; index < clips.length; index++) {
             let input = clips[index];
 
-            // let out = path.join(home, `dumps/sod/data/uploads/video-${index}.mp4`);
-            let out = input;
+            let out = path.join(home, `dumps/sod/data/uploads/video-${index}.webm`);
             if (index == 1) {
-                out = path.join(home, `dumps/sod/data/uploads/video-${index}.mp4`);
-                let tmp = path.join(home, `dumps/sod/data/uploads/tmp/video-${index}.mp4`);
+                out = path.join(home, `dumps/sod/data/uploads/video-${index}.webm`);
+                let tmp = path.join(home, `dumps/sod/data/uploads/tmp/video-${index}.webm`);
 
                 tmp = await writeToFile(input, tmp);
 
                 await convertClip(tmp, out, index == 1 ? path.join(home, "dumps/sod/data/uploads") : null);
 
-                // await convertClip(tmp, out, index == 1 ? path.join(home, "dumps/sod/data/uploads") : null);
-
                 // remove the input file
                 fs.removeSync(tmp);
             } else {
-                // await convertClip(input, out);
+                // out = input;
+                await convertClip(input, out);
             }
 
-            // await convertClip(tmp, out, index == 1 ? path.join(home, "dumps/sod/data/uploads") : null);
             outputs.push(out);
-
-            // remove the input file
-            // fs.removeSync(tmp);oiuytre
 
             console.log("DONE WITH INPUT: ", index + 1);
         }
 
         // merge all videos
-        await mergeClips(outputs, output, tmp);
+        await mergeClips(outputs, output, tmp, path.join(home, "dumps/sod/data/uploads"));
 
         // downsize clip
-        await downsizeClip(output, result, path.join(home, "dumps/sod/data/uploads"));
+        // await downsizeClip(output, result, path.join(home, "dumps/sod/data/uploads"));
+
+        // take screenshot
+        await takeScreenshot(output, path.join(home, "dumps/sod/data/uploads"))
 
         if (video.abort) {
             throw "Aborted";
@@ -113,14 +111,14 @@ const createStory = async (video, cb) => {
         let objKey = getFileName(video.upload_url).split(".")[0].replace(".mp4", "")
 
         let video_url = new URL(video.upload_url);
-        video_url.pathname = `sod-story/posts${video_url.pathname}.mp4`
+        video_url.pathname = `sod-story/posts${video_url.pathname}.webm`
 
         // send the video to s3
         await awsClient.send(new PutObjectCommand({
             Bucket: config.awsBucketName,
-            Key: `sod-story/posts/${objKey}.mp4`,
-            Body: fs.createReadStream(result),
-            ContentType: 'video/mp4',
+            Key: `sod-story/posts/${objKey}.webm`,
+            Body: fs.createReadStream(output),
+            ContentType: 'video/webm',
             ACL: "public-read"
         }));
 
@@ -132,9 +130,6 @@ const createStory = async (video, cb) => {
             ContentType: 'image/webp',
             ACL: "public-read"
         }));
-
-        // #4. Delete the output video
-        fs.removeSync(output);
 
         // #5. Update the database with video url and status
         // get database instance
@@ -149,6 +144,9 @@ const createStory = async (video, cb) => {
             Bucket: config.awsBucketName,
             Key: new URL(video.upload_url).pathname.substring(1)
         }));
+
+        // #4. Delete the output video
+        fs.removeSync(output);
 
         console.log("🎉 Conversion complete 🎉 ");
 
@@ -188,13 +186,28 @@ const convertClip = (input, output, folder) => {
                 return;
             }
 
+            let f = metadata.streams[0].r_frame_rate.split("/");
+
+            fps = (f[0] || 30) / (f[1] || 1);
+            fps = fps < 20 ? 30 : fps;
+
+            console.log("Converting clip with dimension: ", `${metadata.streams[0].width}x${metadata.streams[0].width}`, "and FPS: ", metadata.streams[0].r_frame_rate)
+
+            const baseResolution = '640:360';
+
                 ffmpeg()
                 .input(input)
-                .complexFilter('[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2[v];[0:a]anull[a]')
+                .complexFilter(`[0:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[v];[0:a]anull[a]`)
                 .outputOptions('-map [v]')
                 .outputOptions('-map [a]')
-                .outputOptions('-c:v libx264')
-                .outputOptions('-c:a aac')
+                // .outputOptions('-c:v libx264')
+                // .outputOptions('-c:a aac')
+                .outputOptions('-c:v libvpx') // Use libvpx for WebM video codec
+                .outputOptions('-c:a libvorbis') 
+                .outputOptions('-auto-alt-ref 0') // Disable automatic reference frame generation for older browsers
+                .outputOptions('-qmin 10') // Adjust quality settings as needed
+                .outputOptions('-qmax 42') // Adjust quality settings as needed
+                .outputOptions('-crf 20') 
                 .save(output)
                 .on('start', (commandLine) => {
                     console.log('Spawned ffmpeg with command:', commandLine);
@@ -209,46 +222,58 @@ const convertClip = (input, output, folder) => {
     })
 }
 
-const mergeClips = (files, output, tmp) => {
+const mergeClips = (files, output, tmp, folder) => {
     return new Promise((resolve, reject) => {
 
         const cmd = ffmpeg();
 
-        const baseResolution = '1920:1080';
+        // const baseResolution = '1920:1080';
 
-        const complexFilter = [
-            `[0:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video0]`,
-            `[1:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video1]`,
-            `[2:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video2]`,
-            `[video0][video1][video2]concat=n=3:v=1:a=0[output]`
-        ];
+        // const complexFilter = [
+        //     `[0:v]setpts=PTS-STARTPTS;scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video0]`,
+        //     `[1:v]setpts=PTS-STARTPTS;scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video1]`,
+        //     `[2:v]setpts=PTS-STARTPTS;scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video2]`,
+        //     `[video0][video1][video2]concat=n=3:v=1:a=0[output]`
+        // ];
+
+        const baseResolution = '640:360'; // Adjust the frame rate as needed
+
+        const complexFilter = files.map((_, index) => {
+            // const inputLabel = `[${index}:v]setpts=PTS-STARTPTS,`;
+            // const scaledAndPaddedVideo = `scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video${index}]`;
+            // return `${inputLabel}${scaledAndPaddedVideo}`;
+            const inputLabel = `[${index}:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video${index}]`;
+            return inputLabel;
+        });
+
+        let fps = 20;
 
         for (let i = 0; i < files.length; i++) {
-            let f = files[i].split('.');
+            // let f = files[i].split('.');
             cmd
+                // .inputOptions(`-r 60`)
                 .input(files[i])
-                .inputFormat(f[f.length - 1] || 'any')
-                
         }
 
         cmd
             // .inputOptions('-shortest') 
-            // .videoCodec('libx264')
-            .complexFilter(complexFilter)
-            
-            .outputOptions('-c:v libx264')
-            .outputOptions('-c:a aac')
+            .complexFilter(complexFilter.join(';'))
+            // .outputOptions('-c:v libx264')
+            // .outputOptions('-c:a aac')
+            .outputOptions('-c:v libvpx') // Use libvpx for WebM video codec
+            .outputOptions('-c:a libvorbis') 
             .outputOptions('-shortest') 
+            // .outputOptions('-r 30') 
             .mergeToFile(output, tmp)
             .on('end', () => {
                 // remove files
                 for (var i = 0; i < files.length; i++) {
                     // fs.removeSync(files[i]);
-                    if (files[i].includes(`video-${i}.mp4`)) {
+                    if (files[i].includes(`video-${i}.`)) {
                         fs.removeSync(files[i])
                     }
                 }
-                resolve()
+                resolve();
             })
             .on('error', (err) => {
                 reject(new Error(err));
@@ -256,9 +281,32 @@ const mergeClips = (files, output, tmp) => {
     })
 }
 
+const takeScreenshot = (input, folder) => {
+    return new Promise((resolve, reject) => {
+        ffmpeg(input)
+        .screenshots({
+            count: 1,
+            filename: "thumbnail.webp",
+            // fastSeek: true,
+            folder,
+            timemarks: ['00:00:08.000'],
+            size: "640x360",
+        })
+        // .output(path.join(folder, "res.webp"))
+        .on('end', () => {
+            console.log("Taken screenshot")
+            resolve();
+        })
+        .on('error', (err) => {
+            console.log(err)
+            resolve()
+        })
+        .run();
+    })
+}   
+
 const downsizeClip = (input, output, folder) => {
     return new Promise((resolve, reject) => {
-
         ffmpeg.ffprobe(input, (err, metadata) => {
 
             if (err) {
@@ -267,7 +315,7 @@ const downsizeClip = (input, output, folder) => {
             }
 
             const newWidth = 640;
-            const newHeight = 480;
+            const newHeight = 360;
 
             const ar = getAspectRatio(
                 metadata.streams[0].width,
@@ -275,13 +323,18 @@ const downsizeClip = (input, output, folder) => {
                 newWidth,
                 newHeight
             )
-
+            const targetResolution = '640x360';
             const cmd = ffmpeg()
                 .input(input)
-                .withSize(`${newWidth}x${newHeight}`)
-                .withAspectRatio(ar)
-                .outputFormat('mp4')
-                .outputFps(29)
+                // .withSize(`${newWidth}x${newHeight}`)
+                // .withAspectRatio(ar)
+                // .outputFormat('mp4')
+                // .outputFps(29)
+                .complexFilter(`[0:v]scale=${targetResolution}:force_original_aspect_ratio=decrease,pad=${targetResolution}:(ow-iw)/2:(oh-ih)/2[video];[0:a]anull[a]`)
+                .outputOptions('-map [video]')
+                .outputOptions('-c:v libvpx') // Use libvpx for WebM video codec
+                .outputOptions('-c:a libvorbis') 
+                .outputOptions(`-r ${fps || '30'}`)
                 .output(output)
                 .screenshots({
                     count: 1,
@@ -295,7 +348,7 @@ const downsizeClip = (input, output, folder) => {
             // run the conversion
             cmd
                 .on('end', () => {
-                    fs.removeSync(input);
+                    // fs.removeSync(input);
                     resolve()
                 })
                 .on('error', (err) => {
@@ -412,3 +465,4 @@ function getAspectRatio(originalWidth, originalHeight, newWidth, newHeight) {
 }
 
 const isLocal = (u) => !u.startsWith("http"); 
+  

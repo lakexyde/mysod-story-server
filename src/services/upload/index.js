@@ -63,6 +63,7 @@ const findUploads = async ({ user, query }) => {
         "page": Joi.number().default(1),
         "limit": Joi.number().default(10),
         "search": Joi.string(),
+        "id": Joi.string(),
         "status": Joi.string(),
         "orderby": Joi.string(),
         "sorting": Joi.string(),
