@@ -7,7 +7,6 @@ const { awsClient } = require("../../config/s3");
 const { HeadObjectCommand, PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
 const config = require("../../config");
 const { UploadModel } = require("../../models");
-const { default: axios } = require("axios");
 const { getFileName } = require("../../utils/helpers");
 
 var ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
@@ -15,8 +14,6 @@ var ffprobePath = require('@ffprobe-installer/ffprobe').path;
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
 
-//https://grm-cyc.s3.us-east-1.amazonaws.com/5580151000829836
-// https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/intro.mp4
 const createStory = async (video, cb) => {
 
     // get the start time
@@ -30,7 +27,7 @@ const createStory = async (video, cb) => {
         }
 
         // #1. check if video exists
-        if (!(await objectExists(new URL(video.upload_url).pathname.substring(1)))) {
+        if (!isLocal(video.upload_url) && !(await objectExists(new URL(video.upload_url).pathname.substring(1)))) {
 
             // move the video down the pecking order
             await UploadModel.update({id: video.id}, {
@@ -70,29 +67,31 @@ const createStory = async (video, cb) => {
 
         // loop through the inputs
         for (let index = 0; index < clips.length; index++) {
-            const input = clips[index];
+            let input = clips[index];
 
+            // let out = path.join(home, `dumps/sod/data/uploads/video-${index}.mp4`);
             let out = input;
-
             if (index == 1) {
                 out = path.join(home, `dumps/sod/data/uploads/video-${index}.mp4`);
-                let tmp = await writeToFile(input, path.join(home, `dumps/sod/data/uploads/tmp/video-${index}.mp4`));
+                let tmp = path.join(home, `dumps/sod/data/uploads/tmp/video-${index}.mp4`);
+
+                tmp = await writeToFile(input, tmp);
 
                 await convertClip(tmp, out, index == 1 ? path.join(home, "dumps/sod/data/uploads") : null);
+
+                // await convertClip(tmp, out, index == 1 ? path.join(home, "dumps/sod/data/uploads") : null);
 
                 // remove the input file
                 fs.removeSync(tmp);
             } else {
-
+                // await convertClip(input, out);
             }
 
-            
-
             // await convertClip(tmp, out, index == 1 ? path.join(home, "dumps/sod/data/uploads") : null);
-            // outputs.push(out);
+            outputs.push(out);
 
             // remove the input file
-            // fs.removeSync(tmp);
+            // fs.removeSync(tmp);oiuytre
 
             console.log("DONE WITH INPUT: ", index + 1);
         }
@@ -102,6 +101,10 @@ const createStory = async (video, cb) => {
 
         // downsize clip
         await downsizeClip(output, result);
+
+        if (video.abort) {
+            throw "Aborted";
+        }
 
         // #3. upload the video to s3
         // get the video object key
@@ -148,6 +151,10 @@ const createStory = async (video, cb) => {
         console.log("🎉 Conversion complete 🎉 ");
 
     } catch (error) {
+        // change video status to trash if error is "trash"
+        if (error == "trash") {
+            UploadModel.update({id: video.id} , {status: "trash"});
+        }
         console.log(error);
     } finally {
         cb()
@@ -162,7 +169,68 @@ module.exports = {
 }
 
 const convertClip = (input, output, folder) => {
+
     return new Promise((resolve, reject) => {
+        const baseResolution = '1920:1080';
+
+        console.log("coonverting clip");
+    
+        ffmpeg()
+          .input(input)
+          .complexFilter('[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2[v];[0:a]anull[a]')
+        .outputOptions('-map [v]')
+        .outputOptions('-map [a]')
+        .outputOptions('-c:v libx264')
+        .outputOptions('-c:a aac')
+        .save(output)
+          .on('start', (commandLine) => {
+            console.log('Spawned ffmpeg with command:', commandLine);
+          })
+          .on('end', () => {
+            resolve();
+          })
+          .on('error', (err) => {
+            reject(err);
+          })
+        //   .run()
+          
+      });
+
+    return new Promise((resolve, reject) => {
+
+        // let f = input.split('.');
+
+        // const cmd = ffmpeg();
+        // cmd.input(input)
+        // .inputFormat(f[f.length - 1] || 'any') // Specify any input format
+        // // .inputOptions('-shortest') // Set the output duration to the duration of the input
+        // .complexFilter('[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2[video0]')
+        // .outputOptions('-c:v libx264') // Set the video codec for the output
+        // .outputOptions('-c:a aac')  
+        
+        // // take screenshot if needed
+        // if (folder) {
+        //     cmd.takeScreenshots({
+        //         count: 1,
+        //         filename: "thumbnail.webp",
+        //         fastSeek: true,
+        //         folder,
+        //         timemarks: ['00:00:02.000'],
+        //         size: "640x480",
+        //     });
+        // }
+        // // Set the audio codec for the output
+        // cmd.on('end', () => {
+        //     resolve()
+        // })
+        // .on('error', (err, c) => {
+        //     console.log("COMMAND: ", c);
+        //     reject(new Error(err));
+        // })
+        // .save(output)
+
+        // return;
+
         ffmpeg.ffprobe(input, (err, metadata) => {
 
             if (err) {
@@ -173,6 +241,9 @@ const convertClip = (input, output, folder) => {
             const newWidth = 1920;
             const newHeight = 1080;
 
+            const { width, height } = metadata.streams[0];
+            const scaleFactor = 1920 / width;
+
             const ar = getAspectRatio(
                 metadata.streams[0].width,
                 metadata.streams[0].height,
@@ -180,8 +251,29 @@ const convertClip = (input, output, folder) => {
                 newHeight
             )
 
+            // reject video if more than 45 seconds
+            if (metadata.streams[0].duration > 48) {
+                reject("trash")
+                return;
+            }
+
             const cmd = ffmpeg()
+
+            //     .input(input)
+            //     .format('mp4')
+
+            if (metadata.streams[0].width != 1920) {
+                // cmd
+                //     .complexFilter([
+                //         `scale=1920:-1,crop='min(1080,1*ih)':'min(iw/1,ih)'`
+                //     ])
+            }
+
+            let f = input.split('.');
+
+            cmd
                 .input(input)
+                .inputFormat(f[f.length -1])
                 .withSize(`${newWidth}x${newHeight}`)
                 .withAspectRatio(ar)
                 .autopad('black')
@@ -211,7 +303,7 @@ const convertClip = (input, output, folder) => {
                 .on('end', () => {
                     resolve()
                 })
-                .on('error', (err) => {
+                .on('error', (err, c) => {
                     reject(new Error(err));
                 }).run()
             })
@@ -221,27 +313,46 @@ const convertClip = (input, output, folder) => {
 const mergeClips = (files, output, tmp) => {
     return new Promise((resolve, reject) => {
 
-        const cmd = ffmpeg()
-            .on('end', () => {
-                resolve()
-            })
-            .on('error', (err) => {
-                reject(new Error(err));
-            })
+        const cmd = ffmpeg();
+
+        const baseResolution = '1920:1080';
+
+        const complexFilter = [
+            // '[0:v]scale=848:480:force_original_aspect_ratio=decrease,pad=848:480:(ow-iw)/2:(oh-ih)/2[video0]',
+            // '[1:v]scale=848:480:force_original_aspect_ratio=decrease,pad=848:480:(ow-iw)/2:(oh-ih)/2[video1]',
+            // '[2:v]scale=848:480:force_original_aspect_ratio=decrease,pad=848:480:(ow-iw)/2:(oh-ih)/2[video2]',
+            // '[video0][video1][video2]concat=n=3:v=1:a=1[output]'
+            `[0:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video0]`,
+            `[1:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video1]`,
+            `[2:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video2]`,
+            `[video0][video1][video2]concat=n=3:v=1:a=0[output]`
+        ];
 
         for (let i = 0; i < files.length; i++) {
-            
+            let f = files[i].split('.');
+            // cmd.mergeAdd(files[i]);
             cmd
                 .input(files[i])
-                .format('mp4')   
+                .inputFormat(f[f.length - 1] || 'any')
+                
         }
 
         cmd
+            // .inputOptions('-shortest') 
+            // .videoCodec('libx264')
+            .complexFilter(complexFilter)
+            
+            .outputOptions('-c:v libx264')
+            .outputOptions('-c:a aac')
+            .outputOptions('-shortest') 
             .mergeToFile(output, tmp)
             .on('end', () => {
                 // remove files
                 for (var i = 0; i < files.length; i++) {
                     // fs.removeSync(files[i]);
+                    if (files[i].includes(`video-${i}.mp4`)) {
+                        fs.removeSync(files[i])
+                    }
                 }
                 resolve()
             })
@@ -300,8 +411,7 @@ const downsizeClip = (input, output) => {
  */
 function writeToFile(url, output) {
     return new Promise((resolve, reject) => {
-        if (!url.startsWith("http")) {
-
+        if (isLocal(url)) {
             (async function () {
                 const fileTypeModule = await import('file-type');
                 const { fileTypeFromFile } = fileTypeModule;
@@ -398,3 +508,5 @@ function getAspectRatio(originalWidth, originalHeight, newWidth, newHeight) {
         .catch(err => reject(false));
     })
 }
+
+const isLocal = (u) => !u.startsWith("http"); 
