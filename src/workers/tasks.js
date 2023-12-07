@@ -1,6 +1,7 @@
 const dayjs = require("dayjs");
 const { UploadModel } = require("../models");
 const { getQueue } = require("../config/queue");
+const { getDB } = require("../config/db");
 
 const processPendingVideos = async () => {
 
@@ -28,6 +29,14 @@ const processPendingVideos = async () => {
                 payload: video
             })
         }
+
+        const db = await getDB();
+
+        // delete trash more than 10 minutes
+        db.prepare(`
+            DELETE FROM uploads
+            WHERE (data ->> '$.status' = 'trash') AND (data ->> '$.updated_at' > ${dayjs().subtract(30, 'minutes').toISOString()})
+        `).run()
 
         // get the videos
         const { results } = await UploadModel.findAll({
