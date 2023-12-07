@@ -17,6 +17,8 @@ const processPendingVideos = async () => {
             limit: 30
         });
 
+        console.log("🎉 Found ", uploads.length, "items pending");
+
         for (let video of uploads ) {
             queue.pushTask({
                 id: video.id,

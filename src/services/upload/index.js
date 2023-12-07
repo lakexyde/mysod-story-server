@@ -122,9 +122,10 @@ const updateUpload = async ({ user, body, params }) => {
     }
 
     let schema = Joi.object({
-        "status": Joi.string().valid("publish", "trash", "pending").required(),
+        "status": Joi.string().valid("new", "publish", "trash", "pending").required(),
         "url": Joi.string().uri().optional(),
-        "upload_url": Joi.string().uri()
+        "upload_url": Joi.string().uri(),
+        "thumbnail_url": Joi.string().uri()
     }).options({stripUnknown: true});
 
     // validate the schema

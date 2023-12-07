@@ -41,6 +41,8 @@ const createStory = async (video, cb) => {
         //     Key: new URL(video.upload_url).pathname.substring(1)
         // }))
 
+        console.log("🎉 BEGIN CONVERSION FOR ID: ", video.id);
+
         // #2. Merge the clips
         // get the home directory
         const home = "~".replace("~", os.homedir());
