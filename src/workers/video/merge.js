@@ -197,7 +197,7 @@ const convertClip = (input, output, folder) => {
             fps = (f[0] || 30) / (f[1] || 1);
             fps = fps < 20 ? 30 : fps;
 
-            console.log("Converting clip with dimension: ", `${metadata.streams[0].width}x${metadata.streams[0].width}`, "and FPS: ", metadata.streams[0].r_frame_rate)
+            console.log("Converting clip with dimension: ", `${metadata.streams[0].width}x${metadata.streams[0].height}`, "and FPS: ", metadata.streams[0].r_frame_rate)
 
             const baseResolution = '640:360';
 
