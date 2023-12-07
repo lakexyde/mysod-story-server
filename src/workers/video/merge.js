@@ -201,9 +201,11 @@ const convertClip = (input, output, folder) => {
 
             const baseResolution = '640:360';
 
+            let sc = getForceAspectRatioOption(`${metadata.streams[0].width}:etadata.streams[0].width}`, baseResolution, 'enable')
+
                 ffmpeg()
                 .input(input)
-                .complexFilter(`[0:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[v];[0:a]anull[a]`)
+                .complexFilter(`[0:v]scale=${baseResolution}:force_original_aspect_ratio=${sc},pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[v];[0:a]anull[a]`)
                 .outputOptions('-map [v]')
                 .outputOptions('-map [a]')
                 // .outputOptions('-c:v libx264')
@@ -245,9 +247,16 @@ const mergeClips = (files, output, tmp, folder) => {
         const baseResolution = '640:360'; // Adjust the frame rate as needed
 
         const complexFilter = files.map((_, index) => {
-            const inputLabel = `[${index}:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video${index}]`;
+            const inputLabel = `[${index}:v]scale=${baseResolution}:force_original_aspect_ratio=enable,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video${index}]`;
             return inputLabel;
         });
+        // const aspectRatio = '16:9';
+        // const targetWidth = 640;
+        // const targetHeight = Math.round(targetWidth / (16 / 9));
+
+        // const complexFilter = files.map((_, index) => {
+        //     return `[${index}:v]scale=${targetWidth}:${targetHeight}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video${index}];[${index}:a]anull[a${index}]`;
+        // });
 
         for (let i = 0; i < files.length; i++) {
             cmd.input(files[i])
@@ -463,4 +472,20 @@ function getAspectRatio(originalWidth, originalHeight, newWidth, newHeight) {
 }
 
 const isLocal = (u) => !u.startsWith("http"); 
+
+function getForceAspectRatioOption(originalResolution, destinationResolution, mode) {
+    const [originalWidth, originalHeight] = originalResolution.split(':').map(Number);
+    const [destinationWidth, destinationHeight] = destinationResolution.split(':').map(Number);
+  
+    const originalAspectRatio = originalWidth / originalHeight;
+    const destinationAspectRatio = destinationWidth / destinationHeight;
+  
+    if (originalAspectRatio < destinationAspectRatio && mode !== 'disable') {
+      return 'increase';
+    } else if (originalAspectRatio > destinationAspectRatio && mode !== 'disable') {
+      return 'decrease';
+    } else {
+      return 'disable';
+    }
+  }
   
