@@ -169,31 +169,6 @@ module.exports = {
 }
 
 const convertClip = (input, output, folder) => {
-
-    // return new Promise((resolve, reject) => {
-    //     console.log("coonverting clip");
-    
-    //     ffmpeg()
-    //       .input(input)
-    //       .complexFilter('[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2[v];[0:a]anull[a]')
-    //     .outputOptions('-map [v]')
-    //     .outputOptions('-map [a]')
-    //     .outputOptions('-c:v libx264')
-    //     .outputOptions('-c:a aac')
-    //     .save(output)
-    //       .on('start', (commandLine) => {
-    //         console.log('Spawned ffmpeg with command:', commandLine);
-    //       })
-    //       .on('end', () => {
-    //         resolve();
-    //       })
-    //       .on('error', (err) => {
-    //         reject(err);
-    //       })
-    //     //   .run()
-          
-    //   });
-
     return new Promise((resolve, reject) => {
 
         ffmpeg.ffprobe(input, (err, metadata) => {

@@ -1,3 +1,5 @@
+const path = require("path");
+
 /**
  * 
  * @param {string} data 
