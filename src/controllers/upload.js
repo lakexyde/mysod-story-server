@@ -37,9 +37,19 @@ const postCreateStory = async (req, res) => {
     }
 }
 
+const postNotifyUpload = async (req, res) => {
+    try {
+        const response = await UploadService.notifyUpload(req);
+        return withData(res, response);
+    } catch (error) {
+        return withError(res, error);
+    }
+}
+
 module.exports = {
     postGetSignedUrl,
     getUploads,
     postCreateStory,
-    putUpload
+    putUpload,
+    postNotifyUpload
 }

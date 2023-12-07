@@ -9,6 +9,25 @@ const processPendingVideos = async () => {
         const queue = await getQueue();
 
         // get the videos
+        const { results: uploads } = await UploadModel.findAll({
+            status: "new",
+            role: "admin",
+            uploaded: "yes",
+            sorting: "(data ->> '$.last_attempted_at') ASC",
+            limit: 30
+        });
+
+        for (let video of uploads ) {
+            queue.pushTask({
+                id: video.id,
+                channel: "video",
+                method: "merge",
+                priority: 8,
+                payload: video
+            })
+        }
+
+        // get the videos
         const { results } = await UploadModel.findAll({
             status: "new,trash",
             role: "admin",

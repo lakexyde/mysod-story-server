@@ -15,6 +15,7 @@ const router = (app, _, done) => {
     // get a signed url
     app.get("/posts", UploadController.getUploads);
     app.post("/posts/generate-url", UploadController.postGetSignedUrl);
+    app.post("/posts/notify", UploadController.postNotifyUpload);
     app.post("/posts/story", UploadController.postCreateStory);
     app.put("/posts/:id", UploadController.putUpload);
 

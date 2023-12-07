@@ -72,6 +72,14 @@ const findAll = async (params = {role: "admin"}, count = false) => {
         where += (where ? 'AND' : '') + `(data ->> '$.id' = ${quote(params.id)})\n`;
     }
 
+    if (params.upload_url) {
+        where += (where ? 'AND' : '') + `(data ->> '$.upload_url' = ${quote(params.upload_url)})\n`;
+    }
+
+    if (params.uploaded) {
+        where += (where ? 'AND' : '') + `(data ->> '$.uploaded' = ${quote(params.uploaded)})\n`;
+    }
+
     if (params.status) {
         let s = params.status.split(",").map(e => quote(e.trim())).join(",");
         where += (where ? 'AND' : '') + `((data ->> '$.status' IN (${s})))\n`

@@ -170,8 +170,45 @@ const updateUpload = async ({ user, body, params }) => {
     }
 }
 
+const notifyUpload = async ({ body }) => {
+
+    let schema = Joi.object({
+        "url": Joi.string().uri().optional()
+    }).options({stripUnknown: true});
+
+    // validate the schema
+    let validate = schema.validate(body);
+
+    if(validate.error != null){
+        throw `[400]${validate.error.message}`
+    }
+
+    // get the validated data
+    var data = validate.value;
+
+    // get the video
+    const { results: posts } = await UploadModel.findAll({
+        upload_url: data.url
+    });
+
+    if (!posts.length) {
+        throw `[400]Video was not found`;
+    }
+
+    await UploadModel.update({id: params.id}, {
+        "uploaded": "yes"
+    });
+
+    return {
+        ok: true,
+        message: "Upload updated successfully",
+        data: {}
+    }
+}
+
 module.exports = {
     getUploadUrl,
     findUploads,
-    updateUpload
+    updateUpload,
+    notifyUpload
 }
