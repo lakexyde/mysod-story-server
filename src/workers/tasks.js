@@ -14,7 +14,7 @@ const processPendingVideos = async () => {
             role: "admin",
             uploaded: "yes",
             sorting: "(data ->> '$.last_attempted_at') ASC",
-            limit: 30
+            limit: 50
         });
 
         console.log("🎉 Found ", uploads.length, "items pending");
@@ -39,11 +39,22 @@ const processPendingVideos = async () => {
 
         for (let video of results ) {
 
-            // delete presigned-url if not uploaded within 1 day
-            if (
-                (video.status == "new" && dayjs().diff(video.created_at, 'days') >= 2) || 
-                (video.status == "trash" && dayjs().diff(video.created_at, 'minutes') >= 10)
-            ) {
+            // if new and more than 2 days, trash
+            if (video.status == "new" && dayjs().diff(video.created_at, 'days') >= 2) {
+                video.status = "trash";
+                queue.pushTask({
+                    id: video.id,
+                    channel: "video",
+                    method: "veto",
+                    priority: 10,
+                    payload: video
+                })
+
+                continue;
+            }
+
+            // if video is trash and more than 10 minutes,
+            if(video.status == "trash" && dayjs().diff(video.created_at, 'minutes') >= 10) {
                 video.status = "trash";
                 queue.pushTask({
                     id: video.id,
@@ -52,15 +63,17 @@ const processPendingVideos = async () => {
                     priority: 5,
                     payload: video
                 })
-            } else {
-                queue.pushTask({
-                    id: video.id,
-                    channel: "video",
-                    method: "merge",
-                    priority: 8,
-                    payload: video
-                })
-            }  
+
+                continue;
+            }
+
+            queue.pushTask({
+                id: video.id,
+                channel: "video",
+                method: "merge",
+                priority: 9,
+                payload: video
+            })
         }
 
     } catch (error) {

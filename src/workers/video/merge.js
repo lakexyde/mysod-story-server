@@ -181,7 +181,7 @@ const convertClip = (input, output, folder) => {
             let maxDuration = config.nodeEnv.startsWith("dev") ? 50 : 45;
 
             // if portrait, trash
-            if (metadata.streams[0].height > metadata.streams[0].width) {
+            if (metadata.streams[0].height >= metadata.streams[0].width) {
                 reject("trash")
                 return;
             }
@@ -245,20 +245,12 @@ const mergeClips = (files, output, tmp, folder) => {
         const baseResolution = '640:360'; // Adjust the frame rate as needed
 
         const complexFilter = files.map((_, index) => {
-            // const inputLabel = `[${index}:v]setpts=PTS-STARTPTS,`;
-            // const scaledAndPaddedVideo = `scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video${index}]`;
-            // return `${inputLabel}${scaledAndPaddedVideo}`;
             const inputLabel = `[${index}:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video${index}]`;
             return inputLabel;
         });
 
-        let fps = 20;
-
         for (let i = 0; i < files.length; i++) {
-            // let f = files[i].split('.');
-            cmd
-                // .inputOptions(`-r 60`)
-                .input(files[i])
+            cmd.input(files[i])
         }
 
         cmd

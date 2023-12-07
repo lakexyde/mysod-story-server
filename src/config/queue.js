@@ -5,19 +5,26 @@ const Queue = require('better-queue');
 const config = require('.');
 const { VideoHandler } = require('../workers');
 const { getDB } = require('./db');
+const { getJSON } = require('../utils/helpers');
 
 class MyQueue extends Queue {
     pushTask(task) {
         getDB().then(db => {
-            let r = db.prepare(`
-                SELECT id from tasks
+            let t = db.prepare(`
+                SELECT data from tasks
                 WHERE id = @id
             `).get({
                 id: task.id
             })
 
             // return if found;
-            if (r) return;
+            if (t) {
+                t = getJSON(t);
+                if (typeof t == "object" && t?.data?.method == "merge") {
+                    console.log("Won't run duplicate");
+                    return;
+                }
+            };
 
             // save to the database
             db.prepare(`
