@@ -72,19 +72,20 @@ function capitalize(text) {
 }
 
 function getFileName(urlOrPath) {
-    if (typeof urlOrPath !== 'string') {
-      throw new Error('Invalid input: Expected a string');
+    let fileName;
+
+    try {
+      // Parse the URL
+      const parsedUrl = new URL(inputUrl);
+  
+      // For remote URLs
+      fileName = path.basename(parsedUrl.pathname);
+    } catch (error) {
+      // If parsing as a URL fails, treat it as a local path
+      fileName = path.basename(inputUrl);
     }
   
-    const url = new URL(urlOrPath);
-    const path = url.pathname;
-    const lastSlashIndex = path.lastIndexOf('/');
-  
-    if (lastSlashIndex === -1) {
-      return path;
-    } else {
-      return path.substring(lastSlashIndex + 1);
-    }
+    return fileName;
   }
 
 module.exports = {
