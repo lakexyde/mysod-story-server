@@ -79,7 +79,9 @@ const createStory = async (video, cb) => {
 
                 tmp = await writeToFile(input, tmp);
 
-                await convertClip(tmp, out, index == 1 ? path.join(home, "dumps/sod/data/uploads") : null);
+                await convertClip(tmp, out, path.join(home, "dumps/sod/data/uploads"));
+
+                await takeScreenshot(tmp, path.join(home, "dumps/sod/data/uploads", "screen.webm" ), path.join(home, "dumps/sod/data/uploads"))
 
                 // remove the input file
                 fs.removeSync(tmp);
@@ -100,7 +102,7 @@ const createStory = async (video, cb) => {
         // await downsizeClip(output, result, path.join(home, "dumps/sod/data/uploads"));
 
         // take screenshot
-        await takeScreenshot(output, path.join(home, "dumps/sod/data/uploads"))
+        // await takeScreenshot(output, path.join(home, "dumps/sod/data/uploads"))
 
         if (video.abort) {
             throw "Aborted";
@@ -203,7 +205,7 @@ const convertClip = (input, output, folder) => {
 
             let sc = getForceAspectRatioOption(`${metadata.streams[0].width}:etadata.streams[0].width}`, baseResolution, 'enable')
 
-                ffmpeg()
+            ffmpeg()
                 .input(input)
                 .complexFilter(`[0:v]scale=${baseResolution}:force_original_aspect_ratio=${sc},pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[v];[0:a]anull[a]`)
                 .outputOptions('-map [v]')
@@ -218,7 +220,9 @@ const convertClip = (input, output, folder) => {
                 .outputOptions('-crf 20') 
                 .save(output)
                 .on('start', (commandLine) => {
-                    console.log('Spawned ffmpeg with command:', commandLine);
+                    if (config.nodeEnv.startsWith("dev")) {
+                        console.log('Spawned ffmpeg with command:', commandLine);
+                    }  
                 })
                 .on('end', () => {
                     resolve();
@@ -288,7 +292,7 @@ const mergeClips = (files, output, tmp, folder) => {
     })
 }
 
-const takeScreenshot = (input, folder) => {
+const takeScreenshot = (input, output, folder) => {
     return new Promise((resolve, reject) => {
         ffmpeg(input)
         .screenshots({
@@ -299,9 +303,10 @@ const takeScreenshot = (input, folder) => {
             timemarks: ['00:00:08.000'],
             size: "640x360",
         })
-        // .output(path.join(folder, "res.webp"))
+        .output(output)
         .on('end', () => {
             console.log("Taken screenshot")
+            fs.removeSync(output)
             resolve();
         })
         .on('error', (err) => {
