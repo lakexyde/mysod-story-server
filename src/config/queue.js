@@ -20,7 +20,7 @@ class MyQueue extends Queue {
             // return if found;
             if (t) {
                 t = getJSON(t);
-                if (typeof t == "object" && t?.data?.method == "merge") {
+                if (typeof t == "object" /*&& t?.data?.method == "merge"*/) {
                     console.log("Won't run duplicate");
                     return;
                 }
@@ -55,6 +55,9 @@ class MyQueue extends Queue {
 /**@type {MyQueue} */
 let _q;
 
+/**@type {MyQueue} */
+let _v;
+
 /**
  * @returns {Promise<MyQueue>}
  */
@@ -66,7 +69,7 @@ const getQueue = async () => {
 
     _q = new MyQueue(fn, {
         id: 'id',
-        concurrent: 1,
+        concurrent: 3,
         maxRetries: 1,
         retryDelay: 200,
         afterProcessDelay: 500,
@@ -92,7 +95,46 @@ const getQueue = async () => {
     _q.on('task_finish', (taskId) => {
         _q.removeTask(taskId)
     })
-}   
+}  
+
+/**
+ * @returns {Promise<MyQueue>}
+ */
+const getVideoQueue = async () => {
+    if (_v) return _v;
+
+    const dirPath = path.join(config.appDataPath.replace('~', os.homedir()), 'databases');
+    await fsExtra.ensureDir(dirPath);
+
+    _v = new MyQueue(fn, {
+        id: 'id',
+        concurrent: 1,
+        maxRetries: 1,
+        retryDelay: 200,
+        afterProcessDelay: 500,
+        // maxTimeout: 600000,
+        // cancelIfRunning: true,
+        store: {
+            type: 'sql',
+            dailet: 'sqlite',
+            path: dirPath + '/video-queue.db'
+        },
+        priority(task, cb) {
+            cb(null, task.priority || 1);
+        },
+    });
+
+    // listen to task queue
+    if (config.nodeEnv.startsWith("dev")) {
+        _v.on('task_queued', (taskId, _) => {
+            console.log('Task with id: ', taskId, 'queued');
+        })
+    }
+    
+    _v.on('task_finish', (taskId) => {
+        _v.removeTask(taskId)
+    })
+}  
 
 /**
  * 
@@ -111,5 +153,6 @@ function fn(task, cb) {
 }
 
 module.exports = {
-    getQueue
+    getQueue,
+    getVideoQueue
 }

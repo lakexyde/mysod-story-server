@@ -28,6 +28,20 @@ const vetoVideo = async (video, cb) => {
             }))
         }
 
+        // delete video if exists
+        if (video.url) {
+            let key = new URL(video.url).pathname.substring(1);
+            let exists = await objectExists(key)
+
+            // delete object if exists
+            if (exists) {
+                await awsClient.send(new DeleteObjectCommand({
+                    Bucket: config.awsBucketName,
+                    Key: key
+                }))
+            }
+        }
+
         // check if thumbnail exists
         exists = await objectExists(new URL(video.thumbnail_url).pathname.substring(1))
 

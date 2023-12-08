@@ -1,6 +1,6 @@
 const Fastify = require('fastify');
 const config = require('./config');
-const { getQueue } = require('./config/queue');
+const { getQueue, getVideoQueue } = require('./config/queue');
 const { getDB } = require('./config/db');
 const { AsyncTask, SimpleIntervalJob } = require('toad-scheduler');
 const { fastifySchedulePlugin } = require('@fastify/schedule');
@@ -74,6 +74,7 @@ class SODApp {
 
             // initialize queue
             await getQueue();
+            await getVideoQueue();
 
             // initialize database
             await getDB()

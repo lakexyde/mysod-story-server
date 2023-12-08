@@ -1,6 +1,6 @@
 const dayjs = require("dayjs");
 const { UploadModel } = require("../models");
-const { getQueue } = require("../config/queue");
+const { getQueue, getVideoQueue } = require("../config/queue");
 const { getDB } = require("../config/db");
 
 const processPendingVideos = async () => {
@@ -8,6 +8,7 @@ const processPendingVideos = async () => {
     try {
 
         const queue = await getQueue();
+        const videoQueue = await getVideoQueue()
 
         // get the videos
         const { results: uploads } = await UploadModel.findAll({
@@ -21,7 +22,7 @@ const processPendingVideos = async () => {
         console.log("🎉 Found ", uploads.length, "items pending");
 
         for (let video of uploads ) {
-            queue.pushTask({
+            videoQueue.pushTask({
                 id: video.id,
                 channel: "video",
                 method: "merge",
@@ -35,7 +36,8 @@ const processPendingVideos = async () => {
         // delete trash more than 10 minutes
         db.prepare(`
             DELETE FROM uploads
-            WHERE (data ->> '$.status' = 'trash') AND (data ->> '$.updated_at' > ${dayjs().subtract(30, 'minutes').toISOString()})
+            WHERE (data ->> '$.status' = 'trash') 
+                AND (data ->> '$.updated_at' > '${dayjs().subtract(30, 'minutes').toISOString()}')
         `).run()
 
         // get the videos
@@ -76,7 +78,7 @@ const processPendingVideos = async () => {
                 continue;
             }
 
-            queue.pushTask({
+            videoQueue.pushTask({
                 id: video.id,
                 channel: "video",
                 method: "merge",
