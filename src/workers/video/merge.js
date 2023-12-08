@@ -8,6 +8,7 @@ const { HeadObjectCommand, PutObjectCommand, DeleteObjectCommand } = require("@a
 const config = require("../../config");
 const { UploadModel } = require("../../models");
 const { getFileName } = require("../../utils/helpers");
+const { genId } = require("../../utils/gen");
 
 var ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 var ffprobePath = require('@ffprobe-installer/ffprobe').path;
@@ -38,7 +39,7 @@ const createStory = async (video, cb) => {
 
             throw "Upload url does not exist yet";
         }
-        
+
         // await awsClient.send(new HeadObjectCommand({
         //     Bucket: config.awsBucketName,
         //     Key: new URL(video.upload_url).pathname.substring(1)
@@ -57,13 +58,17 @@ const createStory = async (video, cb) => {
 
         // get the clips
         const clips = [
-            fs.existsSync(path.join(home, "dumps/sod/data/uploads/sod-story-intro.mp4")) ? path.join(home, "dumps/sod/data/uploads/sod-story-intro.mp4") :
-            "https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/intro.mp4",
+            fs.existsSync(
+                path.join(home, "dumps/sod/data/uploads/sod-story-intro.mp4")) 
+                ? path.join(home, "dumps/sod/data/uploads/sod-story-intro.mp4") 
+                : "https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/intro.mp4",
 
             video.upload_url,
 
-            fs.existsSync(path.join(home, "dumps/sod/data/uploads/sod-story-outro.mp4")) ? path.join(home, "dumps/sod/data/uploads/sod-story-outro.mp4") :
-            "https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/outro.mp4",
+            fs.existsSync(
+                path.join(home, "dumps/sod/data/uploads/sod-story-outro.mp4")) 
+                ? path.join(home, "dumps/sod/data/uploads/sod-story-outro.mp4") 
+                : "https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/outro.mp4",
         ]
 
         // collect the outputs
@@ -207,7 +212,9 @@ const convertClip = (input, output, folder) => {
 
             let sc = getForceAspectRatioOption(`${metadata.streams[0].width}:etadata.streams[0].width}`, baseResolution, 'enable')
 
-            ffmpeg()
+            const id = genId()
+
+            const cmd = ffmpeg()
                 .input(input)
                 .complexFilter(`[0:v]scale=${baseResolution}:force_original_aspect_ratio=${sc},pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[v];[0:a]anull[a]`)
                 .outputOptions('-map [v]')
@@ -222,17 +229,24 @@ const convertClip = (input, output, folder) => {
                 .outputOptions('-crf 20') 
                 .save(output)
                 .on('start', (commandLine) => {
+                    config.spawnedProcesses.push({id, cmd});
+
                     if (config.nodeEnv.startsWith("dev")) {
                         console.log('Spawned ffmpeg with command:', commandLine);
                     }  
-
                     console.log("🔀 Converting video clip");
                 })
                 .on('end', () => {
+                    
+                    config.spawnedProcesses = config.spawnedProcesses.filter(e => e.id !== id);
+
                     console.log('✅ Done converting video clip'); 
                     resolve();
                 })
                 .on('error', (err) => {
+                    // remove from spawned processes
+                    config.spawnedProcesses = config.spawnedProcesses.filter(e => e.id !== id);
+
                     reject(err);
                 })
             })
@@ -243,6 +257,7 @@ const mergeClips = (files, output, tmp, folder) => {
     return new Promise((resolve, reject) => {
 
         const cmd = ffmpeg();
+        const id = genId();
 
         const baseResolution = '640:360'; // Adjust the frame rate as needed
 
@@ -250,13 +265,6 @@ const mergeClips = (files, output, tmp, folder) => {
             const inputLabel = `[${index}:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video${index}]`;
             return inputLabel;
         });
-        // const aspectRatio = '16:9';
-        // const targetWidth = 640;
-        // const targetHeight = Math.round(targetWidth / (16 / 9));
-
-        // const complexFilter = files.map((_, index) => {
-        //     return `[${index}:v]scale=${targetWidth}:${targetHeight}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video${index}];[${index}:a]anull[a${index}]`;
-        // });
 
         for (let i = 0; i < files.length; i++) {
             cmd.input(files[i])
@@ -278,20 +286,26 @@ const mergeClips = (files, output, tmp, folder) => {
             .mergeToFile(output, tmp)
             .on('start', (_) => {
                 console.log('🎉 Merging clips'); 
+                config.spawnedProcesses.push({id, cmd});
             })
             .on('end', () => {
                 // remove files
                 for (var i = 0; i < files.length; i++) {
                     // fs.removeSync(files[i]);
-                    if (files[i].includes(`video-${i}.`)) {
+                    if (files[i].includes(`video-${i}`)) {
                         fs.removeSync(files[i])
                     }
                 }
+
+                // remove from spawned processes
+                config.spawnedProcesses = config.spawnedProcesses.filter(e => e.id !== id);
 
                 console.log('✅  Done Merging clips'); 
                 resolve();
             })
             .on('error', (err) => {
+                // remove from spawned processes
+                config.spawnedProcesses = config.spawnedProcesses.filter(e => e.id !== id);
                 reject(new Error(err));
             })
     })
@@ -299,29 +313,40 @@ const mergeClips = (files, output, tmp, folder) => {
 
 const takeScreenshot = (input, output, folder) => {
     return new Promise((resolve, reject) => {
-        ffmpeg(input)
-        .screenshots({
-            count: 1,
-            filename: "thumbnail.webp",
-            // fastSeek: true,
-            folder,
-            timemarks: ['00:00:08.000'],
-            size: "640x360",
-        })
-        .output(output)
-        .on('start', (_) => {
-            console.log('📷 Taking screeshot'); 
-        })
-        .on('end', () => {
-            console.log('✅ Screen taken'); 
-            fs.removeSync(output)
-            resolve();
-        })
-        .on('error', (err) => {
-            console.log(err)
-            resolve()
-        })
-        .run();
+        const id = genId();
+        const cmd = ffmpeg(input);
+
+        cmd
+            .screenshots({
+                count: 1,
+                filename: "thumbnail.webp",
+                // fastSeek: true,
+                folder,
+                timemarks: ['00:00:08.000'],
+                size: "640x360",
+            })
+            .output(output)
+            .on('start', (_) => {
+                console.log('📷 Taking screeshot'); 
+
+                config.spawnedProcesses.push({id, cmd});
+            })
+            .on('end', () => {
+                console.log('✅ Screenshot taken'); 
+                fs.removeSync(output)
+
+                // remove from spawned processes
+                config.spawnedProcesses = config.spawnedProcesses.filter(e => e.id !== id);
+
+                resolve();
+            })
+            .on('error', (err) => {
+                // remove from spawned processes
+                config.spawnedProcesses = config.spawnedProcesses.filter(e => e.id !== id);
+
+                reject(err)
+            })
+            .run();
     })
 }   
 

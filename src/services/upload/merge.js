@@ -11,19 +11,19 @@ ffmpeg.setFfprobePath(ffprobePath);
 
 //https://grm-cyc.s3.us-east-1.amazonaws.com/5580151000829836
 // https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/intro.mp4
-const createStory = async ({ user, body }) => {
+const createStory = async ({}) => {
 
     getVideoQueue().then(q => {
-        q.push({
+        q.pushTask({
             id: "merge",
             channel: "video",
             method: "merge",
             payload: {
                 id: "2343234235",
-                upload_url: "/Users/lakexyde/dumps/sod/data/uploads/mov_bbb.mp4",
+                upload_url: "/Users/lakexyde/dumps/sod/data/uploads/my-story.mp4",
                 abort: true,
             }
-        })
+        }, 'merge')
     })
 
     return {

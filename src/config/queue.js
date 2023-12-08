@@ -5,7 +5,6 @@ const Queue = require('better-queue');
 const config = require('.');
 const { VideoHandler } = require('../workers');
 const { getDB } = require('./db');
-const { getJSON } = require('../utils/helpers');
 
 class MyQueue extends Queue {
     pushTask(task, mode = 'merge') {
@@ -18,7 +17,7 @@ class MyQueue extends Queue {
             })
 
             if (t) { 
-                console.log(mode.toUpperCase(), " task with ID: ", task.id, " already running ");
+                console.log(mode.toUpperCase(), "task with ID:", task.id, "already running ");
                 return
             }
 
@@ -84,7 +83,7 @@ const getQueue = async () => {
     // listen to task queue
     if (config.nodeEnv.startsWith("dev")) {
         _q.on('task_queued', (taskId, _) => {
-            console.log('Task with id: ', taskId, 'queued');
+            console.log('Task with id:', taskId, 'queued');
         })
     }
 
@@ -135,7 +134,7 @@ const getVideoQueue = async () => {
     // listen to task queue
     if (config.nodeEnv.startsWith("dev")) {
         _v.on('task_queued', (taskId, _) => {
-            console.log('Task with id: ', taskId, 'queued');
+            console.log('Video task with id:', taskId, 'queued');
         })
     }
     
@@ -143,14 +142,8 @@ const getVideoQueue = async () => {
         _v.removeTask(taskId)
     })
 
-    // listen to task queue
-    if (config.nodeEnv.startsWith("dev")) {
-        _q.on('task_queued', (taskId, _) => {
-            console.log('Video merge Task with id: ', taskId, 'queued');
-        })
-    }
-
     _q.on('task_started', (taskId) => {
+        console.log("🛠️ Video task started:", taskId);
         getDB().then(db => {
             db.prepare(`
                 INSERT INTO tasks (id, data) VALUES (@id, @data)

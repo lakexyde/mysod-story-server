@@ -18,6 +18,7 @@ const config = {
     webPushPublicKey: 'BOLOLL38szOPEDf-rBLapMoJPOeQv5q1o2FmRfSTr1WgkV5gdSWSFnWDEpSG1RHpI3tNAMBWYn1tRu809PzCp2k',
     webPushPrivateKey: 'EHE__DEwJrBprezvqw0t3gA7LFu-keQrJmMcJSfw3Lc',
 
+    spawnedProcesses: []
 }
 
 module.exports = config;
