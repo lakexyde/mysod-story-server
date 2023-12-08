@@ -6,26 +6,25 @@ const processPendingVideos = async () => {
 
     try {
 
-        const queue = await getQueue();
         const videoQueue = await getVideoQueue()
 
         // get the videos
-        const { results: uploads } = await UploadModel.findAll({
+        const { results: uploads, meta } = await UploadModel.findAll({
             status: "new",
             role: "admin",
             // uploaded: "yes",
-            sorting: "(data ->> '$.last_attempted_at') ASC, (data ->> '$.updated_at') ASC",
-            limit: 50
-        });
+            sorting: "(data ->> '$.created_at') ASC",
+            limit: 5
+        }, true);
 
-        console.log("🎉 Found ", uploads.length, "items pending");
+        console.log("🎉 Found ", meta.total, "items pending");
 
         for (let video of uploads ) {
             videoQueue.pushTask({
                 id: video.id,
                 channel: "video",
                 method: "merge",
-                priority: 8,
+                // priority: 8,
                 payload: video
             }, 'merge')
         }
@@ -58,7 +57,7 @@ const cleanupVideos = async () => {
                     id: video.id,
                     channel: "video",
                     method: "veto",
-                    priority: 10,
+                    priority: 8,
                     payload: video
                 }, 'veto')
 

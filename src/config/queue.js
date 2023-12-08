@@ -64,11 +64,11 @@ const getQueue = async () => {
 
     _q = new MyQueue(fn, {
         id: 'id',
-        concurrent: 5,
-        maxRetries: 1,
+        concurrent: 1,
+        maxRetries: 0,
         retryDelay: 100,
         afterProcessDelay: 100,
-        maxTimeout: 60000,
+        maxTimeout: 6000,
         // cancelIfRunning: true,
         store: {
             type: 'sql',

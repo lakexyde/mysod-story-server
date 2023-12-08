@@ -29,6 +29,7 @@ const createStory = async (video, cb) => {
             throw "Bad request";
         }
 
+        console.log("🎉 Checking if video exists: ", video.upload_url);
         // #1. check if video exists
         if (
             !isLocal(video.upload_url) 
@@ -41,7 +42,6 @@ const createStory = async (video, cb) => {
         ) {
 
             let payload = {last_attempted_at: dayjs().toISOString()}
-
             // move the video down the pecking order
             await UploadModel.update({id: video.id}, payload);
 
@@ -413,27 +413,29 @@ function writeToFile(url, output) {
 }
 
 function objectExists(key, video) {
+    let found = false;
     return new Promise((resolve, reject) => {
         awsClient.send(new HeadObjectCommand({
             Bucket: config.awsBucketName,
             Key: key
         }))
         .then(res => {
-
-            if (video && res.$metadata.httpStatusCode !== 200) {
-                if (dayjs().diff(video.created_at, 'hour') >= 1) {
-                    console.log("🚮 Removing video. Not found")
-                    UploadModel.remove(video.id);
-                }
-            }
-
+            found = res.$metadata.httpStatusCode === 200;
 
             switch (res.$metadata.httpStatusCode) {
                 case 200: return resolve(true);
                 default: return reject(false);
             }
         })
-        .catch(err => reject(false));
+        .catch(err => reject(false))
+        .finally(() => {
+            if (video && !found) {
+                if (dayjs().diff(video.created_at, 'hour') >= 1) {
+                    console.log("🚮 Removing video. Not found")
+                    UploadModel.remove(video.id);
+                }
+            }
+        })
     })
 }
 
