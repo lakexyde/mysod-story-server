@@ -1,7 +1,6 @@
 const dayjs = require("dayjs");
 const { UploadModel } = require("../models");
 const { getQueue, getVideoQueue } = require("../config/queue");
-const { getDB } = require("../config/db");
 
 const processPendingVideos = async () => {
 
@@ -14,8 +13,8 @@ const processPendingVideos = async () => {
         const { results: uploads } = await UploadModel.findAll({
             status: "new",
             role: "admin",
-            uploaded: "yes",
-            sorting: "(data ->> '$.last_attempted_at') ASC",
+            // uploaded: "yes",
+            sorting: "(data ->> '$.last_attempted_at') ASC, (data ->> '$.updated_at') ASC",
             limit: 50
         });
 
