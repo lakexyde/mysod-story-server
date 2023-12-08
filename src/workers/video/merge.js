@@ -30,7 +30,15 @@ const createStory = async (video, cb) => {
         }
 
         // #1. check if video exists
-        if (!isLocal(video.upload_url) && !(await objectExists(new URL(video.upload_url).pathname.substring(1)), video)) {
+        if (
+            !isLocal(video.upload_url) 
+            && !(
+                await objectExists(
+                    new URL(video.upload_url).pathname.substring(1),
+                    video
+                ) 
+            )
+        ) {
 
             let payload = {last_attempted_at: dayjs().toISOString()}
 
