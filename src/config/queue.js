@@ -17,14 +17,6 @@ class MyQueue extends Queue {
                 id: task.id
             })
 
-            // return if found;
-            // if (t) {
-            //     t = getJSON(t);
-            //     if (typeof t == "object" /*&& t?.data?.method == "merge"*/) {
-            //         console.log("Won't run duplicate");
-            //         return;
-            //     }
-            // };
             if (t) { 
                 console.log(mode.toUpperCase(), " task with ID: ", task.id, " already running ");
                 return
@@ -73,11 +65,11 @@ const getQueue = async () => {
 
     _q = new MyQueue(fn, {
         id: 'id',
-        concurrent: 3,
+        concurrent: 5,
         maxRetries: 1,
-        retryDelay: 200,
-        afterProcessDelay: 500,
-        // maxTimeout: 600000,
+        retryDelay: 100,
+        afterProcessDelay: 100,
+        maxTimeout: 60000,
         // cancelIfRunning: true,
         store: {
             type: 'sql',

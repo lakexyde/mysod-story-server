@@ -43,12 +43,27 @@ const cleanupVideos = async () => {
 
         // get the videos
         const { results } = await UploadModel.findAll({
-            status: "trash",
+            status: "trash,new",
             role: "admin",
             limit: 100
         });
 
         for (let video of results ) {
+
+            if (video.status == "new") {
+                
+                video.status = "check";
+
+                queue.pushTask({
+                    id: video.id,
+                    channel: "video",
+                    method: "veto",
+                    priority: 10,
+                    payload: video
+                }, 'veto')
+
+                continue;
+            }
 
             // if new and more than 2 days, trash
             queue.pushTask({

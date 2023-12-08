@@ -20,6 +20,15 @@ const vetoVideo = async (video, cb) => {
         let key = new URL(video.upload_url).pathname.substring(1);
         let exists = await objectExists(key)
 
+        // if new but no uploads yet for more than an hour, delete
+        if (video.status == "check") {
+            if (dayjs().diff(video.created_at, 'hour') >= 1 && !exists) {
+                await UploadModel.remove(video.id);
+                console.log("🚮 Deleted stale video clip")
+            }
+            throw "Just checking"
+        }
+
         // delete object if exists
         if (exists) {
             await awsClient.send(new DeleteObjectCommand({

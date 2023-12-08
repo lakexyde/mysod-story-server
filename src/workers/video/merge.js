@@ -33,15 +33,12 @@ const createStory = async (video, cb) => {
 
             let payload = {last_attempted_at: dayjs().toISOString()}
 
-            if (dayjs().diff(video.created_at, 'hour') >= 1) {
-                payload.status = "trash"
-            }
-
             // move the video down the pecking order
             await UploadModel.update({id: video.id}, payload);
 
             throw "Upload url does not exist yet";
         }
+        
         // await awsClient.send(new HeadObjectCommand({
         //     Bucket: config.awsBucketName,
         //     Key: new URL(video.upload_url).pathname.substring(1)
