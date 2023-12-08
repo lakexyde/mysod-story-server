@@ -18,7 +18,7 @@ const vetoVideo = async (video, cb) => {
         // #1. delete key on aws and database
         // check if the key is present
         let key = new URL(video.upload_url).pathname.substring(1);
-        let exists = await objectExists(key)
+        let exists = await objectExists(key, video)
 
         // if new but no uploads yet for more than an hour, delete
         if (video.status == "check") {
@@ -82,23 +82,29 @@ module.exports = {
     vetoVideo
 }
 
-function objectExists(key) {
+function objectExists(key, video) {
+    let found = false;
     return new Promise((resolve, reject) => {
         awsClient.send(new HeadObjectCommand({
             Bucket: config.awsBucketName,
             Key: key
         }))
         .then(res => {
-            if (res.$metadata.httpStatusCode !== 200) {
-                reject(false);
-                return;
-            } 
+            found = res.$metadata.httpStatusCode === 200;
 
             switch (res.$metadata.httpStatusCode) {
                 case 200: return resolve(true);
                 default: return reject(false);
             }
         })
-        .catch(err => reject(false));
+        .catch(err => reject(false))
+        .finally(() => {
+            if (video && !found) {
+                if (dayjs().diff(video.created_at, 'hour') >= 1) {
+                    console.log("🚮 Removing video. Not found")
+                    UploadModel.remove(video.id);
+                }
+            }
+        })
     })
 }
