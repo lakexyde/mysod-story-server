@@ -228,8 +228,11 @@ const convertClip = (input, output, folder) => {
                     if (config.nodeEnv.startsWith("dev")) {
                         console.log('Spawned ffmpeg with command:', commandLine);
                     }  
+
+                    console.log("🔀 Converting video clip");
                 })
                 .on('end', () => {
+                    console.log('✅ Done converting video clip'); 
                     resolve();
                 })
                 .on('error', (err) => {
@@ -243,15 +246,6 @@ const mergeClips = (files, output, tmp, folder) => {
     return new Promise((resolve, reject) => {
 
         const cmd = ffmpeg();
-
-        // const baseResolution = '1920:1080';
-
-        // const complexFilter = [
-        //     `[0:v]setpts=PTS-STARTPTS;scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video0]`,
-        //     `[1:v]setpts=PTS-STARTPTS;scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video1]`,
-        //     `[2:v]setpts=PTS-STARTPTS;scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video2]`,
-        //     `[video0][video1][video2]concat=n=3:v=1:a=0[output]`
-        // ];
 
         const baseResolution = '640:360'; // Adjust the frame rate as needed
 
@@ -285,6 +279,9 @@ const mergeClips = (files, output, tmp, folder) => {
             .outputOptions('-qmax 42') // Adjust quality settings as needed
             .outputOptions('-crf 20') 
             .mergeToFile(output, tmp)
+            .on('start', (_) => {
+                console.log('🎉 Merging clips'); 
+            })
             .on('end', () => {
                 // remove files
                 for (var i = 0; i < files.length; i++) {
@@ -293,6 +290,8 @@ const mergeClips = (files, output, tmp, folder) => {
                         fs.removeSync(files[i])
                     }
                 }
+
+                console.log('✅  Done Merging clips'); 
                 resolve();
             })
             .on('error', (err) => {
@@ -313,8 +312,11 @@ const takeScreenshot = (input, output, folder) => {
             size: "640x360",
         })
         .output(output)
+        .on('start', (_) => {
+            console.log('📷 Taking screeshot'); 
+        })
         .on('end', () => {
-            console.log("Taken screenshot")
+            console.log('✅ Screen taken'); 
             fs.removeSync(output)
             resolve();
         })
@@ -325,59 +327,6 @@ const takeScreenshot = (input, output, folder) => {
         .run();
     })
 }   
-
-const downsizeClip = (input, output, folder) => {
-    return new Promise((resolve, reject) => {
-        ffmpeg.ffprobe(input, (err, metadata) => {
-
-            if (err) {
-                reject(err);
-                return;
-            }
-
-            const newWidth = 640;
-            const newHeight = 360;
-
-            const ar = getAspectRatio(
-                metadata.streams[0].width,
-                metadata.streams[0].height,
-                newWidth,
-                newHeight
-            )
-            const targetResolution = '640x360';
-            const cmd = ffmpeg()
-                .input(input)
-                // .withSize(`${newWidth}x${newHeight}`)
-                // .withAspectRatio(ar)
-                // .outputFormat('mp4')
-                // .outputFps(29)
-                .complexFilter(`[0:v]scale=${targetResolution}:force_original_aspect_ratio=decrease,pad=${targetResolution}:(ow-iw)/2:(oh-ih)/2[video];[0:a]anull[a]`)
-                .outputOptions('-map [video]')
-                .outputOptions('-c:v libvpx') // Use libvpx for WebM video codec
-                .outputOptions('-c:a libvorbis') 
-                .outputOptions(`-r ${fps || '30'}`)
-                .output(output)
-                .screenshots({
-                    count: 1,
-                    filename: "thumbnail.webp",
-                    fastSeek: true,
-                    folder,
-                    timemarks: ['00:00:08.000'],
-                    size: "848x480",
-                })
-
-            // run the conversion
-            cmd
-                .on('end', () => {
-                    // fs.removeSync(input);
-                    resolve()
-                })
-                .on('error', (err) => {
-                    reject(new Error(err));
-                }).run()
-            })
-    })
-}
 
 /**
  * 
@@ -433,38 +382,7 @@ function writeToFile(url, output) {
     })
 }
 
-function gcd(a, b) {
-    while (b) {
-      a %= b;
-      [a, b] = [b, a];
-    }
-    return a;
-  }
-
-function getAspectRatio(originalWidth, originalHeight, newWidth, newHeight) {
-    const originalAspectRatio = originalWidth / originalHeight;
-    const newAspectRatio = newWidth / newHeight;
-  
-    const gc = Math.abs(originalWidth) && Math.abs(originalHeight) ? gcd(originalWidth, originalHeight) : 1;
-    const originalAspectRatioNumerator = originalWidth / gc;
-    const originalAspectRatioDenominator = originalHeight / gc;
-  
-    const gcd2 = Math.abs(newWidth) && Math.abs(newHeight) ? gcd(newWidth, newHeight) : 1;
-    const newAspectRatioNumerator = newWidth / gcd2;
-    const newAspectRatioDenominator = newHeight / gcd2;
-  
-    if (originalAspectRatio === newAspectRatio) {
-      return `${originalAspectRatioNumerator}:${originalAspectRatioDenominator}`;
-    }
-  
-    if (originalAspectRatio > newAspectRatio) {
-      return `${originalAspectRatioNumerator}:${newAspectRatioDenominator}`;
-    } else {
-      return `${newAspectRatioNumerator}:${originalAspectRatioDenominator}`;
-    }
-  }
-
-  function objectExists(key) {
+function objectExists(key) {
     return new Promise((resolve, reject) => {
         awsClient.send(new HeadObjectCommand({
             Bucket: config.awsBucketName,
@@ -501,5 +419,5 @@ function getForceAspectRatioOption(originalResolution, destinationResolution, mo
     } else {
       return 'disable';
     }
-  }
+}
   
