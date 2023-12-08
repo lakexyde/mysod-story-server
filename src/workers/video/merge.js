@@ -30,7 +30,7 @@ const createStory = async (video, cb) => {
         }
 
         // #1. check if video exists
-        if (!isLocal(video.upload_url) && !(await objectExists(new URL(video.upload_url).pathname.substring(1)))) {
+        if (!isLocal(video.upload_url) && !(await objectExists(new URL(video.upload_url).pathname.substring(1)), video)) {
 
             let payload = {last_attempted_at: dayjs().toISOString()}
 
@@ -169,7 +169,7 @@ const createStory = async (video, cb) => {
         cb()
         // log the time it took to complete the request
         const end = dayjs().diff(start, 'seconds');
-        console.log("Finished in: ", end, "seconds");
+        console.log("Finished merging operation in: ", end, "seconds");
     }
 }
 
@@ -404,17 +404,21 @@ function writeToFile(url, output) {
     })
 }
 
-function objectExists(key) {
+function objectExists(key, video) {
     return new Promise((resolve, reject) => {
         awsClient.send(new HeadObjectCommand({
             Bucket: config.awsBucketName,
             Key: key
         }))
         .then(res => {
-            if (res.$metadata.httpStatusCode !== 200) {
-                reject(false);
-                return;
-            } 
+
+            if (video && res.$metadata.httpStatusCode !== 200) {
+                if (dayjs().diff(video.created_at, 'hour') >= 1) {
+                    console.log("🚮 Removing video. Not found")
+                    UploadModel.remove(video.id);
+                }
+            }
+
 
             switch (res.$metadata.httpStatusCode) {
                 case 200: return resolve(true);

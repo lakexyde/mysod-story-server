@@ -116,9 +116,8 @@ const getVideoQueue = async () => {
     _v = new MyQueue(fn, {
         id: 'id',
         concurrent: 1,
-        maxRetries: 1,
-        retryDelay: 200,
-        afterProcessDelay: 500,
+        maxRetries: 0,
+        afterProcessDelay: 200,
         // maxTimeout: 600000,
         // cancelIfRunning: true,
         store: {
