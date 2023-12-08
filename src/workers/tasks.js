@@ -31,58 +31,32 @@ const processPendingVideos = async () => {
             })
         }
 
-        const db = await getDB();
+    } catch (error) {
+        console.log(error);
+    }
+}
 
-        // delete trash more than 10 minutes
-        db.prepare(`
-            DELETE FROM uploads
-            WHERE (data ->> '$.status' = 'trash') 
-                AND (data ->> '$.updated_at' > '${dayjs().subtract(30, 'minutes').toISOString()}')
-        `).run()
+const cleanupVideos = async () => {
+
+    try {
+
+        const queue = await getQueue();
 
         // get the videos
         const { results } = await UploadModel.findAll({
-            status: "new,trash",
+            status: "trash",
             role: "admin",
-            sorting: "(data ->> '$.last_attempted_at') ASC",
             limit: 100
         });
 
         for (let video of results ) {
 
             // if new and more than 2 days, trash
-            if (video.status == "new" && dayjs().diff(video.created_at, 'days') >= 2) {
-                video.status = "trash";
-                queue.pushTask({
-                    id: video.id,
-                    channel: "video",
-                    method: "veto",
-                    priority: 10,
-                    payload: video
-                })
-
-                continue;
-            }
-
-            // if video is trash and more than 10 minutes,
-            if(video.status == "trash" && dayjs().diff(video.created_at, 'minutes') >= 10) {
-                video.status = "trash";
-                queue.pushTask({
-                    id: video.id,
-                    channel: "video",
-                    method: "veto",
-                    priority: 5,
-                    payload: video
-                })
-
-                continue;
-            }
-
-            videoQueue.pushTask({
+            queue.pushTask({
                 id: video.id,
                 channel: "video",
-                method: "merge",
-                priority: 9,
+                method: "veto",
+                priority: 10,
                 payload: video
             })
         }
@@ -93,5 +67,6 @@ const processPendingVideos = async () => {
 }
 
 module.exports = {
-    processPendingVideos
+    processPendingVideos,
+    cleanupVideos
 }

@@ -8,31 +8,32 @@ const { getDB } = require('./db');
 const { getJSON } = require('../utils/helpers');
 
 class MyQueue extends Queue {
-    pushTask(task) {
+    pushTask(task, mode = 'merge') {
         getDB().then(db => {
             let t = db.prepare(`
                 SELECT data from tasks
-                WHERE id = @id
+                WHERE data = @id
             `).get({
                 id: task.id
             })
 
             // return if found;
-            if (t) {
-                t = getJSON(t);
-                if (typeof t == "object" /*&& t?.data?.method == "merge"*/) {
-                    console.log("Won't run duplicate");
-                    return;
-                }
-            };
+            // if (t) {
+            //     t = getJSON(t);
+            //     if (typeof t == "object" /*&& t?.data?.method == "merge"*/) {
+            //         console.log("Won't run duplicate");
+            //         return;
+            //     }
+            // };
+            if (t) { return }
 
             // save to the database
             db.prepare(`
-                INSERT INTO tasks (id, data) VALUES (@id, json(@data))
-                ON CONFLICT(id) DO UPDATE SET data=json(@data)
+                INSERT INTO tasks (id, data) VALUES (@id, @data)
+                ON CONFLICT(id) DO UPDATE SET data=@data
             `).run({
-                id: task.id,
-                data: JSON.stringify(task)
+                id: mode,
+                data: task.id
             });
 
             // push the task
@@ -44,7 +45,7 @@ class MyQueue extends Queue {
         getDB().then(db => {
             db.prepare(`
                 DELETE from tasks
-                WHERE id = @id
+                WHERE data = @id
             `).run({
                 id: id
             })
@@ -91,6 +92,18 @@ const getQueue = async () => {
             console.log('Task with id: ', taskId, 'queued');
         })
     }
+
+    _q.on('task_started', (taskId) => {
+        getDB().then(db => {
+            db.prepare(`
+                INSERT INTO tasks (id, data) VALUES (@id, @data)
+                ON CONFLICT(id) DO UPDATE SET data=@data
+            `).run({
+                id: 'veto',
+                data: taskId
+            });
+        })
+    })
     
     _q.on('task_finish', (taskId) => {
         _q.removeTask(taskId)
@@ -133,6 +146,25 @@ const getVideoQueue = async () => {
     
     _v.on('task_finish', (taskId) => {
         _v.removeTask(taskId)
+    })
+
+    // listen to task queue
+    if (config.nodeEnv.startsWith("dev")) {
+        _q.on('task_queued', (taskId, _) => {
+            console.log('Video merge Task with id: ', taskId, 'queued');
+        })
+    }
+
+    _q.on('task_started', (taskId) => {
+        getDB().then(db => {
+            db.prepare(`
+                INSERT INTO tasks (id, data) VALUES (@id, @data)
+                ON CONFLICT(id) DO UPDATE SET data=@data
+            `).run({
+                id: 'merge',
+                data: taskId
+            });
+        })
     })
 }  
 

@@ -31,10 +31,14 @@ const createStory = async (video, cb) => {
         // #1. check if video exists
         if (!isLocal(video.upload_url) && !(await objectExists(new URL(video.upload_url).pathname.substring(1)))) {
 
+            let payload = {last_attempted_at: dayjs().toISOString()}
+
+            if (dayjs().diff(video.created_at, 'hour') >= 1) {
+                payload.status = "trash"
+            }
+
             // move the video down the pecking order
-            await UploadModel.update({id: video.id}, {
-                last_attempted_at: dayjs().toISOString()
-            });
+            await UploadModel.update({id: video.id}, payload);
 
             throw "Upload url does not exist yet";
         }
@@ -72,7 +76,7 @@ const createStory = async (video, cb) => {
         for (let index = 0; index < clips.length; index++) {
             let input = clips[index];
 
-            let out = path.join(home, `dumps/sod/data/uploads/video-${index}.webm`);
+            let out = input
             if (index == 1) {
                 out = path.join(home, `dumps/sod/data/uploads/video-${index}.webm`);
                 let tmp = path.join(home, `dumps/sod/data/uploads/tmp/video-${index}.webm`);
@@ -86,8 +90,9 @@ const createStory = async (video, cb) => {
                 // remove the input file
                 fs.removeSync(tmp);
             } else {
+                // out = path.join(home, `dumps/sod/data/uploads/video-${index}.webm`);
                 // out = input;
-                await convertClip(input, out);
+                // await convertClip(input, out);
             }
 
             outputs.push(out);
@@ -201,7 +206,7 @@ const convertClip = (input, output, folder) => {
 
             console.log("Converting clip with dimension: ", `${metadata.streams[0].width}x${metadata.streams[0].height}`, "and FPS: ", metadata.streams[0].r_frame_rate)
 
-            const baseResolution = '640:360';
+            const baseResolution = '1920:1080';
 
             let sc = getForceAspectRatioOption(`${metadata.streams[0].width}:etadata.streams[0].width}`, baseResolution, 'enable')
 
@@ -251,7 +256,7 @@ const mergeClips = (files, output, tmp, folder) => {
         const baseResolution = '640:360'; // Adjust the frame rate as needed
 
         const complexFilter = files.map((_, index) => {
-            const inputLabel = `[${index}:v]scale=${baseResolution}:force_original_aspect_ratio=enable,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video${index}]`;
+            const inputLabel = `[${index}:v]scale=${baseResolution}:force_original_aspect_ratio=decrease,pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[video${index}]`;
             return inputLabel;
         });
         // const aspectRatio = '16:9';
@@ -275,6 +280,10 @@ const mergeClips = (files, output, tmp, folder) => {
             .outputOptions('-c:a libvorbis') 
             .outputOptions('-shortest') 
             // .outputOptions('-r 30') 
+            .outputOptions('-auto-alt-ref 0')
+            .outputOptions('-qmin 10') // Adjust quality settings as needed
+            .outputOptions('-qmax 42') // Adjust quality settings as needed
+            .outputOptions('-crf 20') 
             .mergeToFile(output, tmp)
             .on('end', () => {
                 // remove files
