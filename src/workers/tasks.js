@@ -27,7 +27,7 @@ const processPendingVideos = async () => {
                 method: "merge",
                 priority: 8,
                 payload: video
-            })
+            }, 'merge')
         }
 
     } catch (error) {
@@ -57,7 +57,7 @@ const cleanupVideos = async () => {
                 method: "veto",
                 priority: 10,
                 payload: video
-            })
+            }, 'veto')
         }
 
     } catch (error) {

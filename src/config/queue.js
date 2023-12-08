@@ -25,7 +25,10 @@ class MyQueue extends Queue {
             //         return;
             //     }
             // };
-            if (t) { return }
+            if (t) { 
+                console.log(mode.toUpperCase(), " task with ID: ", task.id, " already running ");
+                return
+            }
 
             // save to the database
             db.prepare(`
