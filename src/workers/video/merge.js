@@ -128,7 +128,7 @@ const createStory = async (video, cb) => {
         let objKey = getFileName(video.upload_url).split(".")[0].replace(".mp4", "")
 
         let video_url = new URL(video.upload_url);
-        video_url.pathname = `sod-story/posts${video_url.pathname}.webm`
+        video_url.pathname = `sod-story/posts${objKey}.webm`
 
         // send the video to s3
         await awsClient.send(new PutObjectCommand({
@@ -152,7 +152,7 @@ const createStory = async (video, cb) => {
         // get database instance
         await UploadModel.update({ id : video.id }, {
             status: "pending",
-            url: video_url.toString(),
+            url: `https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/posts/${objKey}.webp`,
             thumbnail_url: `https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/thumbnails/${objKey}.webp`
         });
 
