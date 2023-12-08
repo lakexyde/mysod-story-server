@@ -4,7 +4,7 @@ const { getQueue, getVideoQueue } = require('./config/queue');
 const { getDB } = require('./config/db');
 const { AsyncTask, SimpleIntervalJob } = require('toad-scheduler');
 const { fastifySchedulePlugin } = require('@fastify/schedule');
-const { processPendingVideos } = require('./workers/tasks');
+const { processPendingVideos, cleanupVideos } = require('./workers/tasks');
 
 class SODApp {
 
@@ -103,8 +103,15 @@ class SODApp {
             () => { return processPendingVideos() }
         )
 
+        const cleanupVideosTasks = new AsyncTask(
+            "cleanup-videos-task",
+            () => { return cleanupVideos() }
+        )
+
         // add the job
         this.app.scheduler.addSimpleIntervalJob(new SimpleIntervalJob({ seconds: 60 }, pendingUploadTasks))
+
+        this.app.scheduler.addSimpleIntervalJob(new SimpleIntervalJob({ seconds: 120 }, cleanupVideosTasks))
     }
 }
 
