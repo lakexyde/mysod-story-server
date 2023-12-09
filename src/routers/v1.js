@@ -10,7 +10,7 @@ const router = (app, _, done) => {
 
     app.get("/auth/session", AuthController.getSession);
     app.post("/auth/login", AuthController.passwordLogin);
-    app.get("/auth/logout", AuthController.postLogout);
+    app.post("/auth/logout", AuthController.postLogout);
 
     // get a signed url
     app.get("/posts", UploadController.getUploads);

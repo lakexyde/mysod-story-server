@@ -64,7 +64,7 @@ const getQueue = async () => {
 
     _q = new MyQueue(fn, {
         id: 'id',
-        concurrent: 5,
+        concurrent: 1,
         maxRetries: 0,
         retryDelay: 100,
         afterProcessDelay: 100,

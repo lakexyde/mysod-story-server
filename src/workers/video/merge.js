@@ -88,8 +88,8 @@ const createStory = async (video, cb) => {
 
             let out = input
             if (index == 1) {
-                out = path.join(home, `dumps/sod/data/uploads/video-${index}.webm`);
-                let tmp = path.join(home, `dumps/sod/data/uploads/tmp/video-${index}.webm`);
+                out = path.join(home, `dumps/sod/data/uploads/video-${index}.mp4`);
+                let tmp = path.join(home, `dumps/sod/data/uploads/tmp/video-${index}.mp4`);
 
                 tmp = await writeToFile(input, tmp);
 
@@ -100,7 +100,7 @@ const createStory = async (video, cb) => {
                 // remove the input file
                 fs.removeSync(tmp);
             } else {
-                // out = path.join(home, `dumps/sod/data/uploads/video-${index}.webm`);
+                // out = path.join(home, `dumps/sod/data/uploads/video-${index}.mp4`);
                 // out = input;
                 // await convertClip(input, out);
             }
@@ -227,14 +227,16 @@ const convertClip = (input, output, folder) => {
                 .complexFilter(`[0:v]scale=${baseResolution}:force_original_aspect_ratio=${sc},pad=${baseResolution}:(ow-iw)/2:(oh-ih)/2[v];[0:a]anull[a]`)
                 .outputOptions('-map [v]')
                 .outputOptions('-map [a]')
-                // .outputOptions('-c:v libx264')
-                // .outputOptions('-c:a aac')
-                .outputOptions('-c:v libvpx') // Use libvpx for WebM video codec
-                .outputOptions('-c:a libvorbis') 
-                .outputOptions('-auto-alt-ref 0') // Disable automatic reference frame generation for older browsers
-                .outputOptions('-qmin 10') // Adjust quality settings as needed
-                .outputOptions('-qmax 42') // Adjust quality settings as needed
-                .outputOptions('-crf 20') 
+                .outputOptions('-c:v libx264')
+                .outputOptions('-c:a aac')
+
+                // .outputOptions('-c:v libvpx') // Use libvpx for WebM video codec
+                // .outputOptions('-c:a libvorbis') 
+                // .outputOptions('-auto-alt-ref 0') // Disable automatic reference frame generation for older browsers
+                // .outputOptions('-qmin 10') // Adjust quality settings as needed
+                // .outputOptions('-qmax 42') // Adjust quality settings as needed
+                // .outputOptions('-crf 20') 
+
                 .save(output)
                 .on('start', (commandLine) => {
                     config.spawnedProcesses.push({id, cmd});

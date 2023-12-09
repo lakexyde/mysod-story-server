@@ -13,7 +13,7 @@ class SODApp {
 
     constructor() {
         this.app = Fastify({
-            requestTimeout: 30000
+            requestTimeout: 30000,
         })
     }
 
