@@ -42,7 +42,7 @@ const cleanupVideos = async () => {
 
         // get the videos
         const { results } = await UploadModel.findAll({
-            status: "trash,new",
+            status: "trash",
             role: "admin",
             limit: 100
         });

@@ -26,7 +26,7 @@ class MyQueue extends Queue {
                 INSERT INTO tasks (id, data) VALUES (@id, @data)
                 ON CONFLICT(id) DO UPDATE SET data=@data
             `).run({
-                id: mode,
+                id: 'merge',
                 data: task.id
             });
 
