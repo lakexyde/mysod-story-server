@@ -152,7 +152,7 @@ const createStory = async (video, cb) => {
         // get database instance
         await UploadModel.update({ id : video.id }, {
             status: "pending",
-            url: `https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/posts/${objKey}.webp`,
+            url: `https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/posts/${objKey}.webm`,
             thumbnail_url: `https://grm-cyc.s3.us-east-1.amazonaws.com/sod-story/thumbnails/${objKey}.webp`
         });
 
